@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0A0A0F">
+    <title>ورود — پالس اپ</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="auth-container">
+    <div class="auth-card">
+        
+        <div class="auth-header">
+            <div class="brand-logo">💎</div>
+            <h1 class="brand-name">پالس مدیریت</h1>
+            <p class="brand-subtitle">ورود به حساب کاربری</p>
+        </div>
+
+        <form id="loginForm" class="auth-form">
+            
+            <div class="form-group">
+                <label class="form-label">
+                    <span class="label-icon">📱</span>
+                    شماره موبایل
+                </label>
+                <input type="tel" id="phone" class="form-input phone-input" 
+                       placeholder="09123456789" maxlength="11" 
+                       inputmode="numeric" required autofocus>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">
+                    <span class="label-icon">🔒</span>
+                    رمز عبور
+                </label>
+                <input type="password" id="password" class="form-input" 
+                       placeholder="رمز عبور" required minlength="6">
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-large" id="loginBtn">
+                <span class="btn-text">🔑 ورود</span>
+                <span class="spinner" style="display: none;"></span>
+            </button>
+
+            <div class="error-message" id="errorMsg"></div>
+        </form>
+
+        <div class="auth-footer">
+            <p class="hint-text">حساب کاربری ندارید؟</p>
+            <a href="signup.html" class="help-link">✨ ثبت‌نام کنید</a>
+        </div>
+    </div>
+
+    <div class="version-footer">
+        <span>پالس مدیریت — نسخه <span id="version"></span></span>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+
+<script>
+    document.getElementById('version').textContent = APP_VERSION;
+</script>
+
+</body>
+</html>

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0A0A0F">
+    <title>داشبورد — پالس اپ</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body class="dashboard-body">
+
+<!-- ============================================================
+     TOPBAR
+     ============================================================ -->
+<header class="topbar">
+    <div class="topbar-content">
+        
+        <div class="topbar-brand">
+            <button class="icon-btn menu-toggle" onclick="toggleSidebar()">☰</button>
+            <div class="topbar-logo">💎</div>
+            <div class="topbar-name">پالس مدیریت</div>
+        </div>
+
+        <div class="topbar-actions">
+            <button class="icon-btn" onclick="toggleTheme()" id="themeBtn" title="تغییر تم">
+                🌙
+            </button>
+            
+            <div class="user-chip">
+                <div class="user-avatar" id="userAvatar">?</div>
+                <span class="user-name" id="userName">...</span>
+            </div>
+
+            <button class="icon-btn" onclick="logout()" title="خروج">
+                🚪
+            </button>
+        </div>
+    </div>
+</header>
+
+<!-- ============================================================
+     LAYOUT
+     ============================================================ -->
+<div class="app-layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <nav class="sidebar-nav">
+            <button class="nav-item active">
+                <span class="nav-icon">📊</span>
+                داشبورد
+            </button>
+            <button class="nav-item" onclick="comingSoon('اعضا')">
+                <span class="nav-icon">👥</span>
+                اعضا
+            </button>
+            <button class="nav-item" onclick="comingSoon('مالی')">
+                <span class="nav-icon">💰</span>
+                امور مالی
+            </button>
+            <button class="nav-item" onclick="comingSoon('حضور')">
+                <span class="nav-icon">✅</span>
+                حضور و غیاب
+            </button>
+            <button class="nav-item" onclick="comingSoon('گزارش‌ها')">
+                <span class="nav-icon">📈</span>
+                گزارش‌ها
+            </button>
+            <button class="nav-item" onclick="comingSoon('تنظیمات')">
+                <span class="nav-icon">⚙️</span>
+                تنظیمات
+            </button>
+        </nav>
+    </aside>
+
+    <!-- Main -->
+    <main class="main-content">
+
+        <!-- Loading -->
+        <div class="loading-container" id="loading">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">در حال بارگذاری...</div>
+        </div>
+
+        <!-- Dashboard Content (hidden until loaded) -->
+        <div id="dashboardContent" style="display: none;">
+
+            <!-- Welcome -->
+            <section class="welcome-section">
+                <h1 class="welcome-greeting" id="greeting">👋 سلام!</h1>
+                <p class="welcome-subtitle" id="clubInfo">...</p>
+                <div id="subscriptionBadge"></div>
+            </section>
+
+            <!-- Stats -->
+            <section class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-info">
+                        <div class="stat-label">کل اعضا</div>
+                        <div class="stat-value" id="totalMembers">0</div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">🆕</div>
+                    <div class="stat-info">
+                        <div class="stat-label">اعضای این ماه</div>
+                        <div class="stat-value" id="newMembers">0</div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-info">
+                        <div class="stat-label">درآمد این ماه</div>
+                        <div class="stat-value" id="monthIncome">0</div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">⏳</div>
+                    <div class="stat-info">
+                        <div class="stat-label">اقساط پرداخت‌نشده</div>
+                        <div class="stat-value" id="unpaidInstallments">0</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Progress -->
+            <section class="progress-section" id="subscriptionProgress">
+                <div class="progress-header">
+                    <div class="progress-title">📅 دوره‌ی رایگان</div>
+                    <div class="progress-percent" id="daysLeftPercent">—</div>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                </div>
+                <div class="progress-info">
+                    <span id="daysLeftText">...</span>
+                    <span id="subscriptionEndText">...</span>
+                </div>
+            </section>
+
+            <!-- Action Cards -->
+            <section class="action-grid" style="margin-top: 24px;">
+
+                <!-- Download Desktop -->
+                <div class="action-card">
+                    <div class="action-card-header">
+                        <div class="action-card-icon">⬇️</div>
+                        <div class="action-card-title">نسخه دسکتاپ</div>
+                    </div>
+                    <p class="action-card-desc">
+                        نرم‌افزار اصلی مدیریت مجموعه را برای کامپیوتر دریافت کنید. تمام اطلاعات اینجا در دسترس شماست.
+                    </p>
+                    <div class="action-buttons">
+                        <button class="btn btn-gold btn-sm" onclick="downloadDesktop()">
+                            ⬇️ دانلود
+                        </button>
+                        <button class="btn btn-ghost btn-sm" onclick="showLicense()">
+                            🔑 لایسنس
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Portal Link -->
+                <div class="action-card">
+                    <div class="action-card-header">
+                        <div class="action-card-icon">📱</div>
+                        <div class="action-card-title">پورتال اعضا</div>
+                    </div>
+                    <p class="action-card-desc">
+                        لینک پورتال را برای اعضای مجموعه ارسال کنید تا اقساط، حضور و کارت عضویت خود را ببینند.
+                    </p>
+                    <div class="action-buttons">
+                        <button class="btn btn-blue btn-sm" onclick="copyPortalLink()">
+                            📋 کپی لینک
+                        </button>
+                        <button class="btn btn-ghost btn-sm" onclick="openPortal()">
+                            🌐 باز کردن
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Support -->
+                <div class="action-card">
+                    <div class="action-card-header">
+                        <div class="action-card-icon">💬</div>
+                        <div class="action-card-title">پشتیبانی</div>
+                    </div>
+                    <p class="action-card-desc">
+                        برای خرید لایسنس، تمدید اشتراک یا هر سوالی با ما در روبیکا در تماس باشید.
+                    </p>
+                    <div class="action-buttons">
+                        <button class="btn btn-green btn-sm" onclick="contactSupport()">
+                            💬 چت با پشتیبانی
+                        </button>
+                    </div>
+                </div>
+
+            </section>
+
+        </div>
+
+    </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script>
+<script src="js/dashboard.js"></script>
+
+</body>
+</html>

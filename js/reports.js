@@ -1,0 +1,304 @@
+/**
+ * 📈 گزارش‌ها — فقط مشاهده
+ */
+
+let reportMonth = null;
+let reportMembers = [];
+let reportAttendances = [];
+let reportPayments = [];
+
+// ═══════════════════════════════════════════════════════
+// راه‌اندازی
+// ═══════════════════════════════════════════════════════
+async function initReports() {
+    if (!reportMonth) {
+        reportMonth = getCurrentMonthISO();
+        const input = document.getElementById('reportMonth');
+        if (input) input.value = reportMonth;
+    }
+
+    await loadReports();
+}
+
+// ═══════════════════════════════════════════════════════
+// بارگذاری
+// ═══════════════════════════════════════════════════════
+async function loadReports() {
+    showRepLoading(true);
+    try {
+        const gymId = await getGymId();
+        if (!gymId) throw new Error('gym_id پیدا نشد');
+
+        const monthStart = reportMonth + '-01';
+        const monthEnd = getMonthEnd(reportMonth);
+
+        // ─── ۱. اعضا ───
+        const { data: members, error: mErr } = await supabaseClient
+            .from('members')
+            .select('id, full_name, member_code, join_date, is_active, created_at')
+            .eq('gym_id', gymId);
+
+        if (mErr) throw mErr;
+        reportMembers = members || [];
+
+        // ─── ۲. حضور این ماه ───
+        const { data: attendances, error: aErr } = await supabaseClient
+            .from('attendances')
+            .select('id, member_id, attendance_date, status')
+            .eq('gym_id', gymId)
+            .gte('attendance_date', monthStart)
+            .lte('attendance_date', monthEnd);
+
+        if (aErr) throw aErr;
+        reportAttendances = attendances || [];
+
+        // ─── ۳. پرداخت‌های این ماه ───
+        const { data: payments, error: pErr } = await supabaseClient
+            .from('payments')
+            .select('id, amount, payment_date')
+            .eq('gym_id', gymId)
+            .gte('payment_date', monthStart)
+            .lte('payment_date', monthEnd);
+
+        if (pErr) throw pErr;
+        reportPayments = payments || [];
+
+        // ─── رندر ───
+        updateReportStats();
+        renderAttendanceChart();
+        renderTopMembers();
+        renderNewMembers();
+
+    } catch (e) {
+        console.error('خطا در بارگذاری گزارش‌ها:', e);
+        showToast('❌ خطا: ' + e.message, 'error');
+    } finally {
+        showRepLoading(false);
+    }
+}
+
+// ═══════════════════════════════════════════════════════
+// آمار کلی
+// ═══════════════════════════════════════════════════════
+function updateReportStats() {
+    const totalMembers = reportMembers.length;
+    const presentCount = reportAttendances.filter(a => a.status === 'present').length;
+    const income = reportPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+
+    // نرخ حضور = (تعداد حضور / (تعداد اعضا × تعداد روزهای ماه)) × 100
+    const daysInMonth = new Date(
+        parseInt(reportMonth.split('-')[0]),
+        parseInt(reportMonth.split('-')[1]),
+        0
+    ).getDate();
+
+    const today = new Date();
+    const isCurrentMonth = reportMonth === getCurrentMonthISO();
+    const daysPassed = isCurrentMonth ? today.getDate() : daysInMonth;
+
+    const expected = totalMembers * daysPassed;
+    const rate = expected > 0 ? Math.round((presentCount / expected) * 100) : 0;
+
+    const el = (id) => document.getElementById(id);
+    if (el('rTotalMembers')) el('rTotalMembers').textContent = totalMembers;
+    if (el('rMonthAttendances')) el('rMonthAttendances').textContent = presentCount;
+    if (el('rAttendanceRate')) el('rAttendanceRate').textContent = rate + '%';
+    if (el('rMonthIncome')) el('rMonthIncome').textContent = formatMoney(income);
+}
+
+// ═══════════════════════════════════════════════════════
+// نمودار حضور روزانه
+// ═══════════════════════════════════════════════════════
+function renderAttendanceChart() {
+    const chartEl = document.getElementById('attendanceChart');
+    const emptyEl = document.getElementById('chartEmpty');
+    if (!chartEl) return;
+
+    // ─── گروه‌بندی حضور بر اساس روز ───
+    const byDay = {};
+    reportAttendances.filter(a => a.status === 'present').forEach(a => {
+        const day = a.attendance_date.slice(-2);
+        byDay[day] = (byDay[day] || 0) + 1;
+    });
+
+    const days = Object.keys(byDay);
+    if (days.length === 0) {
+        chartEl.innerHTML = '';
+        if (emptyEl) emptyEl.style.display = 'block';
+        return;
+    }
+
+    if (emptyEl) emptyEl.style.display = 'none';
+
+    // ─── مرتب‌سازی بر اساس روز ───
+    days.sort();
+
+    // ─── پیدا کردن بیشترین مقدار ───
+    const maxVal = Math.max(...Object.values(byDay), 1);
+
+    chartEl.innerHTML = days.map(day => {
+        const count = byDay[day];
+        const heightPercent = Math.max(10, Math.round((count / maxVal) * 100));
+
+        return `
+            <div class="bar-item">
+                <div class="bar-value">${count}</div>
+                <div class="bar-fill" style="height: ${heightPercent}%;"></div>
+                <div class="bar-label">${day}</div>
+            </div>
+        `;
+    }).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// اعضای برتر
+// ═══════════════════════════════════════════════════════
+function renderTopMembers() {
+    const listEl = document.getElementById('topMembersList');
+    const emptyEl = document.getElementById('topMembersEmpty');
+    if (!listEl) return;
+
+    // ─── شمارش حضور هر عضو ───
+    const countByMember = {};
+    reportAttendances.filter(a => a.status === 'present').forEach(a => {
+        countByMember[a.member_id] = (countByMember[a.member_id] || 0) + 1;
+    });
+
+    // ─── مرتب‌سازی ───
+    const sorted = Object.entries(countByMember)
+        .map(([memberId, count]) => {
+            const m = reportMembers.find(x => x.id === memberId);
+            return { member: m, count };
+        })
+        .filter(x => x.member)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
+
+    if (sorted.length === 0) {
+        listEl.innerHTML = '';
+        if (emptyEl) emptyEl.style.display = 'block';
+        return;
+    }
+
+    if (emptyEl) emptyEl.style.display = 'none';
+
+    const medals = ['🥇', '🥈', '🥉'];
+
+    listEl.innerHTML = sorted.map((item, idx) => {
+        const rank = idx < 3 ? medals[idx] : `#${idx + 1}`;
+        const m = item.member;
+        return `
+            <div class="top-member-card">
+                <div class="top-rank">${rank}</div>
+                <div class="top-avatar">${(m.full_name || '?').charAt(0)}</div>
+                <div class="top-info">
+                    <div class="top-name">${escapeHtml(m.full_name || '—')}</div>
+                    <div class="top-code">🎫 ${escapeHtml(m.member_code || '—')}</div>
+                </div>
+                <div class="top-count">
+                    <div class="top-count-value">${item.count}</div>
+                    <div class="top-count-label">روز</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// اعضای جدید
+// ═══════════════════════════════════════════════════════
+function renderNewMembers() {
+    const listEl = document.getElementById('newMembersList');
+    const emptyEl = document.getElementById('newMembersEmpty');
+    const badgeEl = document.getElementById('newMembersBadge');
+    if (!listEl) return;
+
+    const monthStart = reportMonth + '-01';
+    const monthEnd = getMonthEnd(reportMonth);
+
+    const newMembers = reportMembers.filter(m => {
+        const d = m.join_date || (m.created_at ? m.created_at.slice(0, 10) : null);
+        if (!d) return false;
+        return d >= monthStart && d <= monthEnd;
+    });
+
+    if (badgeEl) badgeEl.textContent = newMembers.length;
+
+    if (newMembers.length === 0) {
+        listEl.innerHTML = '';
+        if (emptyEl) emptyEl.style.display = 'block';
+        return;
+    }
+
+    if (emptyEl) emptyEl.style.display = 'none';
+
+    listEl.innerHTML = newMembers.map(m => `
+        <div class="new-member-card">
+            <div class="new-avatar">${(m.full_name || '?').charAt(0)}</div>
+            <div class="new-info">
+                <div class="new-name">${escapeHtml(m.full_name || '—')}</div>
+                <div class="new-meta">
+                    <span>🎫 ${escapeHtml(m.member_code || '—')}</span>
+                    <span>📅 ${formatDate(m.join_date || m.created_at)}</span>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// ماه
+// ═══════════════════════════════════════════════════════
+function onReportMonthChange() {
+    const input = document.getElementById('reportMonth');
+    if (!input) return;
+    reportMonth = input.value;
+    loadReports();
+}
+
+function setReportMonthCurrent() {
+    reportMonth = getCurrentMonthISO();
+    const input = document.getElementById('reportMonth');
+    if (input) input.value = reportMonth;
+    loadReports();
+}
+
+function getCurrentMonthISO() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function getMonthEnd(yearMonth) {
+    const [year, month] = yearMonth.split('-').map(Number);
+    const lastDay = new Date(year, month, 0).getDate();
+    return `${yearMonth}-${String(lastDay).padStart(2, '0')}`;
+}
+
+// ═══════════════════════════════════════════════════════
+// Helper
+// ═══════════════════════════════════════════════════════
+function showRepLoading(show) {
+    const el = document.getElementById('reportsLoading');
+    if (el) el.style.display = show ? 'block' : 'none';
+}
+
+function formatMoney(amount) {
+    if (!amount && amount !== 0) return '0';
+    return Number(amount).toLocaleString('fa-IR');
+}
+
+function formatDate(iso) {
+    if (!iso) return '—';
+    try {
+        return new Date(iso).toLocaleDateString('fa-IR');
+    } catch { return '—'; }
+}
+
+function escapeHtml(s) {
+    if (!s) return '';
+    return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}

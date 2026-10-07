@@ -256,3 +256,65 @@ function showToast(message, type = 'success') {
     clearTimeout(toast._timer);
     toast._timer = setTimeout(() => toast.classList.remove('show'), 3500);
 }
+
+
+// ═══════════════════════════════════════════════════════
+// 🔄 تغییر صفحه
+// ═══════════════════════════════════════════════════════
+function switchPage(pageName) {
+    // ─── پنهان کردن همه ───
+    document.getElementById('dashboardContent').style.display = 'none';
+    const membersContent = document.getElementById('membersContent');
+    if (membersContent) membersContent.style.display = 'none';
+    const attendanceContent = document.getElementById('attendanceContent');
+    if (attendanceContent) attendanceContent.style.display = 'none';
+    const financeContent = document.getElementById('financeContent');
+    if (financeContent) financeContent.style.display = 'none';
+    const reportsContent = document.getElementById('reportsContent');
+    if (reportsContent) reportsContent.style.display = 'none';
+    const settingsContent = document.getElementById('settingsContent');
+    if (settingsContent) settingsContent.style.display = 'none';
+
+    // ─── نav buttons ───
+    document.querySelectorAll('.nav-item').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.page === pageName) {
+            btn.classList.add('active');
+        }
+    });
+
+    // ─── نمایش صفحه ───
+    if (pageName === 'dashboard') {
+        document.getElementById('dashboardContent').style.display = 'block';
+    } else if (pageName === 'members') {
+        if (membersContent) membersContent.style.display = 'block';
+        loadMembers();
+    } else if (pageName === 'attendance') {
+        if (attendanceContent) attendanceContent.style.display = 'block';
+        initAttendance();
+    } else if (pageName === 'finance') {
+        if (financeContent) financeContent.style.display = 'block';
+        initFinance();
+    } else if (pageName === 'reports') {
+        if (reportsContent) reportsContent.style.display = 'block';
+        initReports();
+    } else if (pageName === 'settings') {
+        if (settingsContent) settingsContent.style.display = 'block';
+        initSettings();
+    } else {
+        // صفحات دیگه
+        comingSoon(pageName);
+        // برگردون به داشبورد
+        document.getElementById('dashboardContent').style.display = 'block';
+        document.querySelectorAll('.nav-item').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.page === 'dashboard') btn.classList.add('active');
+        });
+    }
+
+    // ─── بستن sidebar در موبایل ───
+    if (window.innerWidth < 768) {
+        const sb = document.getElementById('sidebar');
+        if (sb) sb.classList.remove('open');
+    }
+}

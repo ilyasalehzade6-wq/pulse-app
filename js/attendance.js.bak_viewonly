@@ -1,0 +1,303 @@
+/**
+ * ✅ حضور و غیاب
+ */
+
+let attendanceMembers = [];
+let attendanceRecords = [];
+let currentAttDate = null;
+let quickSearchTimer = null;
+
+// ═══════════════════════════════════════════════════════
+// راه‌اندازی
+// ═══════════════════════════════════════════════════════
+async function initAttendance() {
+    // تاریخ امروز
+    if (!currentAttDate) {
+        currentAttDate = getTodayISO();
+        const input = document.getElementById('attendanceDate');
+        if (input) input.value = currentAttDate;
+    }
+
+    await loadAttendance();
+}
+
+// ═══════════════════════════════════════════════════════
+// بارگذاری
+// ═══════════════════════════════════════════════════════
+async function loadAttendance() {
+    showAttLoading(true);
+    try {
+        const gymId = await getGymId();
+        if (!gymId) throw new Error('gym_id پیدا نشد');
+
+        // ─── ۱. همه‌ی اعضا ───
+        const { data: members, error: mErr } = await supabaseClient
+            .from('members')
+            .select('id, full_name, phone, member_code, class_name, is_active')
+            .eq('gym_id', gymId)
+            .eq('is_active', true)
+            .order('full_name');
+
+        if (mErr) throw mErr;
+        attendanceMembers = members || [];
+
+        // ─── ۲. حضور این تاریخ ───
+        const { data: records, error: aErr } = await supabaseClient
+            .from('attendances')
+            .select('id, member_id, status, attendance_date, created_at')
+            .eq('gym_id', gymId)
+            .eq('attendance_date', currentAttDate);
+
+        if (aErr) throw aErr;
+        attendanceRecords = records || [];
+
+        updateAttStats();
+        renderAttendanceList();
+        onQuickSearch(); // رفرش نتیجه‌ی جستجو
+
+    } catch (e) {
+        console.error('خطا در بارگذاری حضور:', e);
+        showToast('❌ خطا: ' + e.message, 'error');
+    } finally {
+        showAttLoading(false);
+    }
+}
+
+// ═══════════════════════════════════════════════════════
+// آمار
+// ═══════════════════════════════════════════════════════
+function updateAttStats() {
+    const total = attendanceMembers.length;
+    const present = attendanceRecords.filter(r => r.status === 'present').length;
+    const absent = total - present;
+
+    const el = (id) => document.getElementById(id);
+    if (el('attPresentCount')) el('attPresentCount').textContent = present;
+    if (el('attAbsentCount')) el('attAbsentCount').textContent = absent;
+    if (el('attTotalCount')) el('attTotalCount').textContent = total;
+    if (el('presentBadge')) el('presentBadge').textContent = present;
+}
+
+// ═══════════════════════════════════════════════════════
+// لیست حاضران
+// ═══════════════════════════════════════════════════════
+function renderAttendanceList() {
+    const listEl = document.getElementById('attendanceList');
+    const emptyEl = document.getElementById('attendanceEmpty');
+
+    const presentRecords = attendanceRecords.filter(r => r.status === 'present');
+
+    if (presentRecords.length === 0) {
+        if (listEl) listEl.innerHTML = '';
+        if (emptyEl) emptyEl.style.display = 'block';
+        return;
+    }
+
+    if (emptyEl) emptyEl.style.display = 'none';
+
+    listEl.innerHTML = presentRecords.map(r => {
+        const m = attendanceMembers.find(x => x.id === r.member_id);
+        if (!m) return '';
+        const time = r.created_at ? formatTime(r.created_at) : '—';
+        return `
+            <div class="attendance-card">
+                <div class="attendance-avatar">${(m.full_name || '?').charAt(0)}</div>
+                <div class="attendance-info">
+                    <div class="attendance-name">${escapeHtml(m.full_name || '—')}</div>
+                    <div class="attendance-time">⏰ ${time}</div>
+                </div>
+                <button class="attendance-remove-btn" onclick="removeAttendance('${r.id}')" title="حذف">
+                    ✖
+                </button>
+            </div>
+        `;
+    }).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// جستجوی سریع
+// ═══════════════════════════════════════════════════════
+function onQuickSearch() {
+    if (quickSearchTimer) clearTimeout(quickSearchTimer);
+    quickSearchTimer = setTimeout(() => {
+        performQuickSearch();
+    }, 200);
+}
+
+function performQuickSearch() {
+    const input = document.getElementById('quickSearch');
+    const resultsEl = document.getElementById('quickSearchResults');
+    if (!input || !resultsEl) return;
+
+    const q = input.value.trim().toLowerCase();
+
+    if (!q) {
+        resultsEl.style.display = 'none';
+        resultsEl.innerHTML = '';
+        return;
+    }
+
+    // فیلتر اعضایی که هنوز حاضر نشدن
+    const presentIds = new Set(attendanceRecords.map(r => r.member_id));
+
+    const matches = attendanceMembers.filter(m => {
+        if (presentIds.has(m.id)) return false;
+        return (
+            (m.full_name || '').toLowerCase().includes(q) ||
+            (m.phone || '').includes(q) ||
+            (m.member_code || '').toLowerCase().includes(q)
+        );
+    }).slice(0, 10);
+
+    if (matches.length === 0) {
+        resultsEl.innerHTML = '<div class="quick-empty">نتیجه‌ای پیدا نشد</div>';
+        resultsEl.style.display = 'block';
+        return;
+    }
+
+    resultsEl.innerHTML = matches.map(m => `
+        <div class="quick-result-item" onclick="markAttendance('${m.id}')">
+            <div class="quick-result-avatar">${(m.full_name || '?').charAt(0)}</div>
+            <div class="quick-result-info">
+                <div class="quick-result-name">${escapeHtml(m.full_name || '—')}</div>
+                <div class="quick-result-meta" dir="ltr">${escapeHtml(m.phone || '—')}</div>
+            </div>
+            <div class="quick-result-action">✅</div>
+        </div>
+    `).join('');
+    resultsEl.style.display = 'block';
+}
+
+function onQuickSearchKeydown(event) {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        const resultsEl = document.getElementById('quickSearchResults');
+        const firstItem = resultsEl.querySelector('.quick-result-item');
+        if (firstItem) {
+            firstItem.click();
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════
+// ثبت حضور
+// ═══════════════════════════════════════════════════════
+async function markAttendance(memberId) {
+    try {
+        const gymId = await getGymId();
+        if (!gymId) throw new Error('gym_id پیدا نشد');
+
+        // چک تکراری
+        const exists = attendanceRecords.find(
+            r => r.member_id === memberId && r.status === 'present'
+        );
+        if (exists) {
+            showToast('⚠️ این عضو قبلاً ثبت شده', 'error');
+            return;
+        }
+
+        const { error } = await supabaseClient
+            .from('attendances')
+            .insert({
+                gym_id: gymId,
+                member_id: memberId,
+                attendance_date: currentAttDate,
+                status: 'present',
+            });
+
+        if (error) throw error;
+
+        const m = attendanceMembers.find(x => x.id === memberId);
+        showToast(`✅ ${m?.full_name || 'عضو'} ثبت شد`, 'success');
+
+        // ─── پاک کردن جستجو ───
+        const input = document.getElementById('quickSearch');
+        if (input) input.value = '';
+
+        // ─── رفرش ───
+        await loadAttendance();
+
+        // ─── فوکوس دوباره ───
+        if (input) input.focus();
+
+    } catch (e) {
+        console.error('خطا در ثبت حضور:', e);
+        showToast('❌ خطا: ' + e.message, 'error');
+    }
+}
+
+// ═══════════════════════════════════════════════════════
+// حذف حضور
+// ═══════════════════════════════════════════════════════
+async function removeAttendance(recordId) {
+    if (!confirm('حذف این حضور؟')) return;
+
+    try {
+        const { error } = await supabaseClient
+            .from('attendances')
+            .delete()
+            .eq('id', recordId);
+
+        if (error) throw error;
+
+        showToast('✅ حذف شد', 'success');
+        await loadAttendance();
+    } catch (e) {
+        console.error('خطا در حذف:', e);
+        showToast('❌ خطا: ' + e.message, 'error');
+    }
+}
+
+// ═══════════════════════════════════════════════════════
+// تاریخ
+// ═══════════════════════════════════════════════════════
+function onDateChange() {
+    const input = document.getElementById('attendanceDate');
+    if (!input) return;
+    currentAttDate = input.value;
+    loadAttendance();
+}
+
+function setDateToday() {
+    currentAttDate = getTodayISO();
+    const input = document.getElementById('attendanceDate');
+    if (input) input.value = currentAttDate;
+    loadAttendance();
+}
+
+function setDateYesterday() {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    currentAttDate = d.toISOString().slice(0, 10);
+    const input = document.getElementById('attendanceDate');
+    if (input) input.value = currentAttDate;
+    loadAttendance();
+}
+
+function getTodayISO() {
+    return new Date().toISOString().slice(0, 10);
+}
+
+// ═══════════════════════════════════════════════════════
+// Helper
+// ═══════════════════════════════════════════════════════
+function showAttLoading(show) {
+    const el = document.getElementById('attendanceLoading');
+    if (el) el.style.display = show ? 'block' : 'none';
+}
+
+function formatTime(iso) {
+    try {
+        const d = new Date(iso);
+        return d.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
+    } catch { return '—'; }
+}
+
+function escapeHtml(s) {
+    if (!s) return '';
+    return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}

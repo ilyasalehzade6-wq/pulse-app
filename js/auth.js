@@ -49,6 +49,7 @@ async function handleSignup(event) {
     const firstName = document.getElementById('firstName').value.trim();
     const lastName = document.getElementById('lastName').value.trim();
     const phone = toEnglishDigits(document.getElementById('phone').value.trim());
+    const username = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value;
     const clubName = document.getElementById('clubName').value.trim();
     const clubType = document.getElementById('clubType').value;
@@ -66,6 +67,12 @@ async function handleSignup(event) {
     }
     if (!/^09[0-9]{9}$/.test(phone)) {
         return showError('شماره موبایل باید با ۰۹ شروع شود و ۱۱ رقم باشد');
+    }
+    if (!username || username.length < 3) {
+        return showError('نام کاربری باید حداقل ۳ کاراکتر باشد');
+    }
+    if (!/^[a-zA-Z][a-zA-Z0-9_.]{2,29}$/.test(username)) {
+        return showError('نام کاربری فقط با حروف انگلیسی، عدد، _ و . — و با حرف شروع شود');
     }
     if (password.length < 6) {
         return showError('رمز عبور باید حداقل ۶ کاراکتر باشد');
@@ -120,6 +127,7 @@ async function handleSignup(event) {
                 p_full_name: `${firstName} ${lastName}`,
                 p_club_name: clubName,
                 p_club_type: clubType,
+                p_username: username,
             }
         );
 
@@ -133,7 +141,7 @@ async function handleSignup(event) {
         }
 
         // ۴. موفقیت
-        showToast('✅ حساب شما ساخته شد!', 'success');
+        showToast('🎉 حساب شما ساخته شد!', 'success');
         btnText.textContent = '✅ خوش آمدید!';
 
         // ۵. هدایت به داشبورد
@@ -156,22 +164,21 @@ async function handleSignup(event) {
 function initLoginPage() {
     const form = document.getElementById('loginForm');
     form.addEventListener('submit', handleLogin);
-
-    setupPhoneInput('phone');
 }
 
 async function handleLogin(event) {
     event.preventDefault();
 
-    const phone = toEnglishDigits(document.getElementById('phone').value.trim());
+    const identifier = document.getElementById('identifier').value.trim();
     const password = document.getElementById('password').value;
 
     const btn = document.getElementById('loginBtn');
     const btnText = btn.querySelector('.btn-text');
     const spinner = btn.querySelector('.spinner');
 
-    if (!/^09[0-9]{9}$/.test(phone)) {
-        return showError('شماره موبایل نامعتبر است');
+    // اعتبارسنجی
+    if (!identifier) {
+        return showError('نام کاربری یا شماره موبایل را وارد کنید');
     }
     if (password.length < 6) {
         return showError('رمز عبور باید حداقل ۶ کاراکتر باشد');
@@ -183,18 +190,43 @@ async function handleLogin(event) {
     spinner.style.display = 'inline-block';
 
     try {
-        const email = phoneToEmail(phone);
+        // ─── ۱. تبدیل identifier به email ───
+        let email;
 
-        const { data, error } = await supabaseClient.auth.signInWithPassword({
+        const isPhone = /^09[0-9]{9}$/.test(toEnglishDigits(identifier));
+
+        if (isPhone) {
+            // شماره موبایل → مستقیم
+            email = phoneToEmail(toEnglishDigits(identifier));
+        } else {
+            // نام کاربری → RPC برای پیدا کردن email
+            const { data, error } = await supabaseClient.rpc('get_gym_login_info', {
+                p_identifier: identifier
+            });
+
+            if (error) {
+                console.error('RPC error:', error);
+                return showError('خطا در اتصال. دوباره تلاش کنید.');
+            }
+
+            if (!data || !data.success) {
+                return showError(data?.error || 'کاربری با این مشخصات پیدا نشد');
+            }
+
+            email = data.email;
+        }
+
+        // ─── ۲. ورود با email ───
+        const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
             email: email,
             password: password,
         });
 
-        if (error) {
-            if (error.message.includes('Invalid login')) {
-                return showError('شماره موبایل یا رمز عبور اشتباه است');
+        if (authError) {
+            if (authError.message.includes('Invalid login')) {
+                return showError('نام کاربری یا رمز عبور اشتباه است');
             }
-            return showError('خطا در ورود: ' + error.message);
+            return showError('خطا در ورود: ' + authError.message);
         }
 
         showToast('✅ خوش آمدید!', 'success');

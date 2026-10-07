@@ -47,27 +47,27 @@
     <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
         <nav class="sidebar-nav">
-            <button class="nav-item active">
+            <button class="nav-item active" data-page="dashboard" onclick="switchPage('dashboard')">
                 <span class="nav-icon">📊</span>
                 داشبورد
             </button>
-            <button class="nav-item" onclick="comingSoon('اعضا')">
+            <button class="nav-item" data-page="members" onclick="switchPage('members')">
                 <span class="nav-icon">👥</span>
                 اعضا
             </button>
-            <button class="nav-item" onclick="comingSoon('مالی')">
+            <button class="nav-item" data-page="finance" onclick="switchPage('finance')">
                 <span class="nav-icon">💰</span>
                 امور مالی
             </button>
-            <button class="nav-item" onclick="comingSoon('حضور')">
+            <button class="nav-item" data-page="attendance" onclick="switchPage('attendance')">
                 <span class="nav-icon">✅</span>
                 حضور و غیاب
             </button>
-            <button class="nav-item" onclick="comingSoon('گزارش‌ها')">
+            <button class="nav-item" data-page="reports" onclick="switchPage('reports')">
                 <span class="nav-icon">📈</span>
                 گزارش‌ها
             </button>
-            <button class="nav-item" onclick="comingSoon('تنظیمات')">
+            <button class="nav-item" data-page="settings" onclick="switchPage('settings')">
                 <span class="nav-icon">⚙️</span>
                 تنظیمات
             </button>
@@ -204,6 +204,605 @@
 
         </div>
 
+        <!-- Members Content -->
+        <div id="membersContent" style="display: none;">
+
+            <!-- Header -->
+            <section class="page-header">
+                <h1 class="page-title">👥 اعضا</h1>
+                <p class="page-subtitle">مدیریت ورزشکاران و دانش‌آموزان</p>
+            </section>
+
+            <!-- Stats -->
+            <section class="stats-grid" style="margin-bottom: 20px;">
+                <div class="stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-info">
+                        <div class="stat-label">کل اعضا</div>
+                        <div class="stat-value" id="mTotalCount">0</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-info">
+                        <div class="stat-label">فعال</div>
+                        <div class="stat-value" id="mActiveCount">0</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🆕</div>
+                    <div class="stat-info">
+                        <div class="stat-label">این ماه</div>
+                        <div class="stat-value" id="mMonthCount">0</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Toolbar -->
+            <section class="toolbar">
+                <input type="text" id="memberSearch" class="search-input"
+                       placeholder="🔍 جستجو بر اساس نام، شماره یا کد..."
+                       oninput="filterMembers()">
+                <span class="view-only-badge">👁 فقط مشاهده</span>
+            </section>
+
+            <!-- Loading -->
+            <div class="loading-container" id="membersLoading" style="display: none;">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">در حال بارگذاری...</div>
+            </div>
+
+            <!-- Members List -->
+            <div id="membersList" class="members-list"></div>
+
+            <!-- Empty -->
+            <div id="membersEmpty" class="empty-state" style="display: none;">
+                <div style="font-size: 60px; margin-bottom: 15px;">👥</div>
+                <div style="font-size: 16px; color: #95a5a6;">هنوز عضوی اضافه نشده است</div>
+                
+            </div>
+
+        </div>
+
+        <!-- ═══ Attendance Content ═══ -->
+        <div id="attendanceContent" style="display: none;">
+
+            <section class="page-header">
+                <h1 class="page-title">✅ حضور و غیاب</h1>
+                <p class="page-subtitle">ثبت و پیگیری حضور اعضا</p>
+            </section>
+
+            <!-- آمار -->
+            <section class="stats-grid" style="margin-bottom: 20px;">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(46, 204, 113, 0.15);">✅</div>
+                    <div class="stat-info">
+                        <div class="stat-label">حاضر</div>
+                        <div class="stat-value" id="attPresentCount">0</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(231, 76, 60, 0.15);">❌</div>
+                    <div class="stat-info">
+                        <div class="stat-label">غایب</div>
+                        <div class="stat-value" id="attAbsentCount">0</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📊</div>
+                    <div class="stat-info">
+                        <div class="stat-label">کل اعضا</div>
+                        <div class="stat-value" id="attTotalCount">0</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- تاریخ -->
+            <section class="date-section">
+                <label class="date-label">📅 تاریخ:</label>
+                <input type="date" id="attendanceDate" class="date-input"
+                       onchange="onDateChange()">
+                <button class="btn btn-ghost btn-sm" onclick="setDateToday()">
+                    امروز
+                </button>
+                <button class="btn btn-ghost btn-sm" onclick="setDateYesterday()">
+                    دیروز
+                </button>
+            </section>
+
+            <!-- 🔒 فقط مشاهده -->
+            <div class="view-only-notice">
+                <span style="font-size: 20px;">👁</span>
+                <span>این پنل فقط برای <strong>مشاهده</strong> است. برای ثبت حضور یا افزودن عضو، از نسخه‌ی دسکتاپ استفاده کنید.</span>
+            </div>
+
+            <!-- لیست حاضران امروز -->
+            <section class="attendance-list-section">
+                <h3 class="section-title">
+                    ✅ حاضران
+                    <span class="badge-count" id="presentBadge">0</span>
+                </h3>
+
+                <div class="loading-container" id="attendanceLoading" style="display: none;">
+                    <div class="loading-spinner"></div>
+                </div>
+
+                <div id="attendanceList" class="attendance-list"></div>
+
+                <div id="attendanceEmpty" class="empty-state" style="display: none;">
+                    <div style="font-size: 60px; margin-bottom: 15px;">📋</div>
+                    <div style="font-size: 15px; color: #95a5a6;">
+                        هنوز کسی در این تاریخ حاضر نشده
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- ═══ Finance Content ═══ -->
+        <div id="financeContent" style="display: none;">
+
+            <section class="page-header">
+                <h1 class="page-title">💰 امور مالی</h1>
+                <p class="page-subtitle">مشاهده‌ی پرداخت‌ها و اقساط</p>
+            </section>
+
+            <!-- 👁 View-only Notice -->
+            <div class="view-only-notice">
+                <span style="font-size: 20px;">👁</span>
+                <span>این بخش فقط برای <strong>مشاهده</strong> است. برای ثبت پرداخت، از نسخه‌ی دسکتاپ استفاده کنید.</span>
+            </div>
+
+            <!-- فیلتر ماه -->
+            <section class="toolbar">
+                <input type="month" id="financeMonth" class="date-input"
+                       onchange="onFinanceMonthChange()">
+                <button class="btn btn-ghost btn-sm" onclick="setFinanceMonthCurrent()">
+                    ماه جاری
+                </button>
+                <button class="btn btn-ghost btn-sm" onclick="loadFinance()">
+                    🔄 رفرش
+                </button>
+            </section>
+
+            <!-- آمار -->
+            <section class="stats-grid" style="margin-bottom: 24px;">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(46, 204, 113, 0.15);">💵</div>
+                    <div class="stat-info">
+                        <div class="stat-label">درآمد ماه</div>
+                        <div class="stat-value" id="finIncome">0</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📅</div>
+                    <div class="stat-info">
+                        <div class="stat-label">تعداد پرداخت</div>
+                        <div class="stat-value" id="finCount">0</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(241, 196, 15, 0.15);">📈</div>
+                    <div class="stat-info">
+                        <div class="stat-label">میانگین</div>
+                        <div class="stat-value" id="finAvg">0</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(231, 76, 60, 0.15);">⏳</div>
+                    <div class="stat-info">
+                        <div class="stat-label">اقساط معلق</div>
+                        <div class="stat-value" id="finPending">0</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Loading -->
+            <div class="loading-container" id="financeLoading" style="display: none;">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">در حال بارگذاری...</div>
+            </div>
+
+            <!-- پرداخت‌ها -->
+            <section class="finance-section">
+                <h3 class="section-title">
+                    💵 آخرین پرداخت‌ها
+                    <span class="badge-count" id="paymentsBadge">0</span>
+                </h3>
+                <div id="paymentsList" class="payment-list"></div>
+                <div id="paymentsEmpty" class="empty-state" style="display: none;">
+                    <div style="font-size: 50px; margin-bottom: 10px;">💵</div>
+                    <div style="color: #95a5a6; font-size: 14px;">
+                        در این ماه پرداختی ثبت نشده
+                    </div>
+                </div>
+            </section>
+
+            <!-- اقساط معلق -->
+            <section class="finance-section" style="margin-top: 30px;">
+                <h3 class="section-title">
+                    ⏳ اقساط معلق
+                    <span class="badge-count badge-red" id="installmentsBadge">0</span>
+                </h3>
+                <div id="installmentsList" class="installment-list"></div>
+                <div id="installmentsEmpty" class="empty-state" style="display: none;">
+                    <div style="font-size: 50px; margin-bottom: 10px;">✅</div>
+                    <div style="color: #95a5a6; font-size: 14px;">
+                        همه‌ی اقساط پرداخت شده
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- ═══ Reports Content ═══ -->
+        <div id="reportsContent" style="display: none;">
+
+            <section class="page-header">
+                <h1 class="page-title">📈 گزارش‌ها</h1>
+                <p class="page-subtitle">آمار و تحلیل عملکرد مجموعه</p>
+            </section>
+
+            <!-- 👁 View-only -->
+            <div class="view-only-notice">
+                <span style="font-size: 20px;">👁</span>
+                <span>این بخش فقط برای <strong>مشاهده</strong> است.</span>
+            </div>
+
+            <!-- فیلتر ماه -->
+            <section class="toolbar">
+                <input type="month" id="reportMonth" class="date-input"
+                       onchange="onReportMonthChange()">
+                <button class="btn btn-ghost btn-sm" onclick="setReportMonthCurrent()">
+                    ماه جاری
+                </button>
+                <button class="btn btn-ghost btn-sm" onclick="loadReports()">
+                    🔄 رفرش
+                </button>
+            </section>
+
+            <!-- Loading -->
+            <div class="loading-container" id="reportsLoading" style="display: none;">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">در حال بارگذاری...</div>
+            </div>
+
+            <!-- خلاصه‌ی کلی -->
+            <section class="stats-grid" style="margin-bottom: 24px;">
+                <div class="stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-info">
+                        <div class="stat-label">کل اعضا</div>
+                        <div class="stat-value" id="rTotalMembers">0</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(46, 204, 113, 0.15);">✅</div>
+                    <div class="stat-info">
+                        <div class="stat-label">حضور این ماه</div>
+                        <div class="stat-value" id="rMonthAttendances">0</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(52, 152, 219, 0.15);">📊</div>
+                    <div class="stat-info">
+                        <div class="stat-label">نرخ حضور</div>
+                        <div class="stat-value" id="rAttendanceRate">0%</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(241, 196, 15, 0.15);">💰</div>
+                    <div class="stat-info">
+                        <div class="stat-label">درآمد ماه</div>
+                        <div class="stat-value" id="rMonthIncome">0</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- نمودار حضور روزانه -->
+            <section class="report-section">
+                <h3 class="section-title">📊 حضور روزانه</h3>
+                <div class="chart-container">
+                    <div id="attendanceChart" class="bar-chart"></div>
+                </div>
+                <div id="chartEmpty" class="empty-state" style="display: none;">
+                    <div style="color: #95a5a6; font-size: 14px;">
+                        داده‌ای برای نمایش نیست
+                    </div>
+                </div>
+            </section>
+
+            <!-- اعضای برتر -->
+            <section class="report-section" style="margin-top: 30px;">
+                <h3 class="section-title">🏆 اعضای برتر (بیشترین حضور)</h3>
+                <div id="topMembersList" class="top-members-list"></div>
+                <div id="topMembersEmpty" class="empty-state" style="display: none;">
+                    <div style="color: #95a5a6; font-size: 14px;">
+                        داده‌ای برای نمایش نیست
+                    </div>
+                </div>
+            </section>
+
+            <!-- اعضای جدید -->
+            <section class="report-section" style="margin-top: 30px;">
+                <h3 class="section-title">
+                    🆕 اعضای جدید این ماه
+                    <span class="badge-count" id="newMembersBadge">0</span>
+                </h3>
+                <div id="newMembersList" class="new-members-list"></div>
+                <div id="newMembersEmpty" class="empty-state" style="display: none;">
+                    <div style="color: #95a5a6; font-size: 14px;">
+                        عضو جدیدی در این ماه اضافه نشده
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- ═══ Settings Content ═══ -->
+        <div id="settingsContent" style="display: none;">
+
+            <section class="page-header">
+                <h1 class="page-title">⚙️ تنظیمات</h1>
+                <p class="page-subtitle">اطلاعات حساب و تنظیمات برنامه</p>
+            </section>
+
+            <!-- اطلاعات حساب -->
+            <section class="settings-section">
+                <h3 class="section-title">👤 اطلاعات حساب</h3>
+                <div class="info-grid">
+                    <div class="info-card">
+                        <div class="info-icon">👤</div>
+                        <div class="info-content">
+                            <div class="info-label">نام کاربر</div>
+                            <div class="info-value" id="setFullName">—</div>
+                        </div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-icon">📱</div>
+                        <div class="info-content">
+                            <div class="info-label">شماره موبایل</div>
+                            <div class="info-value" id="setPhone" dir="ltr">—</div>
+                        </div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-icon">🏢</div>
+                        <div class="info-content">
+                            <div class="info-label">نام باشگاه</div>
+                            <div class="info-value" id="setClubName">—</div>
+                        </div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-icon">🆔</div>
+                        <div class="info-content">
+                            <div class="info-label">کد مشتری</div>
+                            <div class="info-value" id="setCustomerCode">—</div>
+                        </div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-icon">🔑</div>
+                        <div class="info-content">
+                            <div class="info-label">نام کاربری</div>
+                            <div class="info-value" id="setUsername" dir="ltr">—</div>
+                        </div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-icon">📧</div>
+                        <div class="info-content">
+                            <div class="info-label">ایمیل</div>
+                            <div class="info-value" id="setEmail" dir="ltr">—</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- وضعیت اشتراک -->
+            <section class="settings-section">
+                <h3 class="section-title">🎫 وضعیت اشتراک</h3>
+                <div id="subscriptionBox" class="subscription-box">
+                    <div class="sub-loading">در حال بارگذاری...</div>
+                </div>
+            </section>
+
+            <!-- لینک‌های مفید -->
+            <section class="settings-section">
+                <h3 class="section-title">📥 دسترسی سریع</h3>
+                <div class="quick-links">
+                    <button class="quick-link-btn" onclick="downloadDesktop()">
+                        <span class="ql-icon">⬇️</span>
+                        <span class="ql-text">
+                            <span class="ql-title">دانلود نسخه دسکتاپ</span>
+                            <span class="ql-sub">نرم‌افزار اصلی</span>
+                        </span>
+                    </button>
+
+                    <button class="quick-link-btn" onclick="openPortal()">
+                        <span class="ql-icon">🌐</span>
+                        <span class="ql-text">
+                            <span class="ql-title">پورتال اعضا</span>
+                            <span class="ql-sub">برای ورزشکاران</span>
+                        </span>
+                    </button>
+
+                    <button class="quick-link-btn" onclick="contactSupport()">
+                        <span class="ql-icon">💬</span>
+                        <span class="ql-text">
+                            <span class="ql-title">پشتیبانی</span>
+                            <span class="ql-sub">تماس با ما</span>
+                        </span>
+                    </button>
+
+                    <button class="quick-link-btn" onclick="copyPortalLink()">
+                        <span class="ql-icon">📋</span>
+                        <span class="ql-text">
+                            <span class="ql-title">کپی لینک پورتال</span>
+                            <span class="ql-sub">برای اشتراک‌گذاری</span>
+                        </span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- ظاهر -->
+            <section class="settings-section">
+                <h3 class="section-title">🎨 ظاهر</h3>
+                <div class="theme-selector">
+                    <button class="theme-btn" id="themeDarkBtn" onclick="setTheme('dark')">
+                        <span class="theme-icon">🌙</span>
+                        <span>حالت تاریک</span>
+                    </button>
+                    <button class="theme-btn" id="themeLightBtn" onclick="setTheme('light')">
+                        <span class="theme-icon">☀️</span>
+                        <span>حالت روشن</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- خروج -->
+            <section class="settings-section">
+                <button class="btn btn-danger btn-block" onclick="logout()">
+                    🚪 خروج از حساب
+                </button>
+            </section>
+
+            <!-- نسخه -->
+            <div class="version-info">
+                <span>پالس مدیریت — نسخه <span id="setVersion">1.0.0</span></span>
+            </div>
+
+        </div>
+
+        <!-- ═══ Settings Content ═══ -->
+        <div id="settingsContent" style="display: none;">
+
+            <section class="page-header">
+                <h1 class="page-title">⚙️ تنظیمات</h1>
+                <p class="page-subtitle">اطلاعات حساب و تنظیمات برنامه</p>
+            </section>
+
+            <!-- اطلاعات حساب -->
+            <section class="settings-section">
+                <h3 class="section-title">👤 اطلاعات حساب</h3>
+                <div class="info-grid">
+                    <div class="info-card">
+                        <div class="info-icon">👤</div>
+                        <div class="info-content">
+                            <div class="info-label">نام کاربر</div>
+                            <div class="info-value" id="setFullName">—</div>
+                        </div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-icon">📱</div>
+                        <div class="info-content">
+                            <div class="info-label">شماره موبایل</div>
+                            <div class="info-value" id="setPhone" dir="ltr">—</div>
+                        </div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-icon">🏢</div>
+                        <div class="info-content">
+                            <div class="info-label">نام باشگاه</div>
+                            <div class="info-value" id="setClubName">—</div>
+                        </div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-icon">🆔</div>
+                        <div class="info-content">
+                            <div class="info-label">کد مشتری</div>
+                            <div class="info-value" id="setCustomerCode">—</div>
+                        </div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-icon">🔑</div>
+                        <div class="info-content">
+                            <div class="info-label">نام کاربری</div>
+                            <div class="info-value" id="setUsername" dir="ltr">—</div>
+                        </div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-icon">📧</div>
+                        <div class="info-content">
+                            <div class="info-label">ایمیل</div>
+                            <div class="info-value" id="setEmail" dir="ltr">—</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- وضعیت اشتراک -->
+            <section class="settings-section">
+                <h3 class="section-title">🎫 وضعیت اشتراک</h3>
+                <div id="subscriptionBox" class="subscription-box">
+                    <div class="sub-loading">در حال بارگذاری...</div>
+                </div>
+            </section>
+
+            <!-- لینک‌های مفید -->
+            <section class="settings-section">
+                <h3 class="section-title">📥 دسترسی سریع</h3>
+                <div class="quick-links">
+                    <button class="quick-link-btn" onclick="downloadDesktop()">
+                        <span class="ql-icon">⬇️</span>
+                        <span class="ql-text">
+                            <span class="ql-title">دانلود نسخه دسکتاپ</span>
+                            <span class="ql-sub">نرم‌افزار اصلی</span>
+                        </span>
+                    </button>
+
+                    <button class="quick-link-btn" onclick="openPortal()">
+                        <span class="ql-icon">🌐</span>
+                        <span class="ql-text">
+                            <span class="ql-title">پورتال اعضا</span>
+                            <span class="ql-sub">برای ورزشکاران</span>
+                        </span>
+                    </button>
+
+                    <button class="quick-link-btn" onclick="contactSupport()">
+                        <span class="ql-icon">💬</span>
+                        <span class="ql-text">
+                            <span class="ql-title">پشتیبانی</span>
+                            <span class="ql-sub">تماس با ما</span>
+                        </span>
+                    </button>
+
+                    <button class="quick-link-btn" onclick="copyPortalLink()">
+                        <span class="ql-icon">📋</span>
+                        <span class="ql-text">
+                            <span class="ql-title">کپی لینک پورتال</span>
+                            <span class="ql-sub">برای اشتراک‌گذاری</span>
+                        </span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- ظاهر -->
+            <section class="settings-section">
+                <h3 class="section-title">🎨 ظاهر</h3>
+                <div class="theme-selector">
+                    <button class="theme-btn" id="themeDarkBtn" onclick="setTheme('dark')">
+                        <span class="theme-icon">🌙</span>
+                        <span>حالت تاریک</span>
+                    </button>
+                    <button class="theme-btn" id="themeLightBtn" onclick="setTheme('light')">
+                        <span class="theme-icon">☀️</span>
+                        <span>حالت روشن</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- خروج -->
+            <section class="settings-section">
+                <button class="btn btn-danger btn-block" onclick="logout()">
+                    🚪 خروج از حساب
+                </button>
+            </section>
+
+            <!-- نسخه -->
+            <div class="version-info">
+                <span>پالس مدیریت — نسخه <span id="setVersion">1.0.0</span></span>
+            </div>
+
+        </div>
+
     </main>
 </div>
 
@@ -212,6 +811,12 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/config.js"></script>
 <script src="js/dashboard.js"></script>
+<script src="js/members.js"></script>
+<script src="js/attendance.js"></script>
+<script src="js/finance.js"></script>
+<script src="js/reports.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/settings.js"></script>
 
 </body>
 </html>

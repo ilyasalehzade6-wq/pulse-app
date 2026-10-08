@@ -2,6 +2,67 @@
  * 💰 امور مالی — فقط مشاهده
  */
 
+// ═══════════════════════════════════════════════════════
+//  🔤 تبدیل تاریخ میلادی/شمسی به شمسی برای نمایش
+// ═══════════════════════════════════════════════════════
+function toShamsiDisplay(dateInput) {
+    if (!dateInput) return '—';
+
+    // ─── اگه از قبل شمسی هست (مثل "1405-07-17") ───
+    if (typeof dateInput === 'string') {
+        const m = dateInput.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+        if (m) {
+            const year = parseInt(m[1]);
+            if (year >= 1300 && year <= 1500) {
+                return `${m[1]}/${m[2].padStart(2, '0')}/${m[3].padStart(2, '0')}`;
+            }
+        }
+    }
+
+    // ─── اگه Date یا ISO میلادی بود → تبدیل کن ───
+    let d;
+    if (dateInput instanceof Date) d = dateInput;
+    else d = new Date(dateInput);
+
+    if (isNaN(d.getTime())) return String(dateInput);
+
+    const gy = d.getFullYear();
+    const gm = d.getMonth() + 1;
+    const gd = d.getDate();
+
+    // الگوریتم تبدیل میلادی به شمسی
+    const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+    let jy = (gy <= 1600) ? 0 : 979;
+    let gy2 = (gy <= 1600) ? gy - 621 : gy - 1600;
+    const gy2b = (gm > 2) ? (gy2 + 1) : gy2;
+
+    let days = (365 * gy2) + Math.floor((gy2b + 3) / 4) -
+               Math.floor((gy2b + 99) / 100) + Math.floor((gy2b + 399) / 400) -
+               80 + gd + g_d_m[gm - 1];
+
+    jy += 33 * Math.floor(days / 12053);
+    days %= 12053;
+    jy += 4 * Math.floor(days / 1461);
+    days %= 1461;
+    if (days > 365) {
+        jy += Math.floor((days - 1) / 365);
+        days = (days - 1) % 365;
+    }
+
+    let jm, jd;
+    if (days < 186) {
+        jm = 1 + Math.floor(days / 31);
+        jd = 1 + (days % 31);
+    } else {
+        jm = 7 + Math.floor((days - 186) / 30);
+        jd = 1 + ((days - 186) % 30);
+    }
+
+    return `${jy}/${String(jm).padStart(2, '0')}/${String(jd).padStart(2, '0')}`;
+}
+
+// alias ساده‌تر
+const toShamsiDate = toShamsiDisplay;
 
 
 let financePayments = [];

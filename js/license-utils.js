@@ -131,4 +131,3 @@ function toShamsiDisplay(dateInput) {
 }
 
 // alias ساده‌تر
-const toShamsiDate = toShamsiDisplay;

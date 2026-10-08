@@ -86,7 +86,7 @@ function renderSubscriptionStatus(gym) {
         statusText = '❓ نامشخص';
         statusColor = '#95a5a6';
     } else {
-        daysLeft = Math.floor((end - now) / (1000 * 60 * 60 * 24));
+        daysLeft = getRemainingDays(end);
         if (daysLeft < 0) {
             statusClass = 'expired';
             statusText = '⏰ منقضی';

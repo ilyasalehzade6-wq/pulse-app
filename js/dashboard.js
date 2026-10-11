@@ -301,6 +301,8 @@ function switchPage(pageName) {
     if (settingsContent) settingsContent.style.display = 'none';
     const announcementsContent = document.getElementById('announcementsContent');
     if (announcementsContent) announcementsContent.style.display = 'none';
+    const chatContent = document.getElementById('chatContent');
+    if (chatContent) chatContent.style.display = 'none';
 
     // ─── نav buttons ───
     document.querySelectorAll('.nav-item').forEach(btn => {
@@ -647,5 +649,251 @@ async function deleteComment(commentId, annId, title) {
         console.error('deleteComment:', err);
     }
 }
+
+
+// ═══════════════════════════════════════════════════════
+//  💬 پیام‌رسان (pulse-app)
+// ═══════════════════════════════════════════════════════
+let chatRoomsCache = [];
+let currentChatRoom = null;
+let chatRefreshTimer = null;
+let lastMessageId = null;
+
+
+async function loadChatRooms() {
+    const list = document.getElementById('chatRoomsList');
+    if (!list) return;
+
+    try {
+        list.innerHTML = '<div class="loading">در حال بارگذاری...</div>';
+
+        const { data, error } = await supabaseClient.rpc('owner_list_chat_rooms');
+
+        if (error || !data?.success) {
+            console.error('chat rooms error:', error || data);
+            list.innerHTML = '<div class="error">خطا در بارگذاری اتاق‌ها</div>';
+            return;
+        }
+
+        chatRoomsCache = data.rooms || [];
+        renderChatRooms();
+    } catch (err) {
+        console.error('loadChatRooms:', err);
+        list.innerHTML = '<div class="error">خطای غیرمنتظره</div>';
+    }
+}
+
+
+function renderChatRooms() {
+    const list = document.getElementById('chatRoomsList');
+    if (!list) return;
+
+    if (chatRoomsCache.length === 0) {
+        list.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">💬</div>
+                <div class="empty-text">هیچ گفت‌وگویی وجود ندارد</div>
+            </div>
+        `;
+        return;
+    }
+
+    // مرتب‌سازی: عمومی اول، بعد اون‌هایی که پیام جدید دارن
+    const sorted = [...chatRoomsCache].sort((a, b) => {
+        if (a.room_type === 'public' && b.room_type !== 'public') return -1;
+        if (a.room_type !== 'public' && b.room_type === 'public') return 1;
+        return (b.unread || 0) - (a.unread || 0);
+    });
+
+    list.innerHTML = sorted.map(r => {
+        const isPublic = r.room_type === 'public';
+        const icon = isPublic ? '🌐' : '👤';
+        const name = isPublic ? 'عمومی (همه)' : (r.room_name || 'بدون نام');
+        const lastMsg = (r.last_message || '').substring(0, 60) || '—';
+        const hasUnread = (r.unread || 0) > 0;
+
+        return `
+            <div class="chat-room-item ${isPublic ? 'public' : ''} ${hasUnread ? 'unread' : ''}"
+                 onclick="openChatRoom('${r.room_id}', '${escapeHtml(name)}', '${r.room_type}')">
+                <div class="chat-room-icon">${icon}</div>
+                <div class="chat-room-info">
+                    <div class="chat-room-name">${escapeHtml(name)}</div>
+                    <div class="chat-room-last">${escapeHtml(lastMsg)}</div>
+                </div>
+                ${hasUnread ? `<div class="chat-room-badge">${r.unread}</div>` : ''}
+            </div>
+        `;
+    }).join('');
+}
+
+
+async function openChatRoom(roomId, roomName, roomType) {
+    currentChatRoom = { id: roomId, name: roomName, type: roomType };
+    lastMessageId = null;
+
+    document.getElementById('chatRoomList').style.display = 'none';
+    document.getElementById('chatConversation').style.display = 'flex';
+    document.getElementById('chatConvTitle').textContent = roomName;
+
+    // علامت خوانده‌شده
+    try {
+        await supabaseClient.rpc('owner_mark_chat_read', { p_room_id: roomId });
+    } catch (e) { console.warn(e); }
+
+    await loadChatMessages();
+    startChatRefresh();
+}
+
+
+function backToRoomList() {
+    stopChatRefresh();
+    currentChatRoom = null;
+    lastMessageId = null;
+
+    document.getElementById('chatRoomList').style.display = 'block';
+    document.getElementById('chatConversation').style.display = 'none';
+
+    // بارگذاری مجدد لیست
+    loadChatRooms();
+}
+
+
+async function loadChatMessages() {
+    if (!currentChatRoom) return;
+
+    const list = document.getElementById('chatMessagesList');
+    if (!list) return;
+
+    try {
+        const { data, error } = await supabaseClient.rpc('owner_get_chat_messages', {
+            p_room_id: currentChatRoom.id,
+            p_limit: 100,
+        });
+
+        if (error || !data?.success) {
+            console.error('messages error:', error || data);
+            list.innerHTML = '<div class="error">خطا در بارگذاری پیام‌ها</div>';
+            return;
+        }
+
+        const messages = (data.messages || []).reverse(); // از قدیم به جدید
+        renderChatMessages(messages);
+
+        if (messages.length > 0) {
+            lastMessageId = messages[messages.length - 1].id;
+        }
+    } catch (err) {
+        console.error('loadChatMessages:', err);
+    }
+}
+
+
+function renderChatMessages(messages) {
+    const list = document.getElementById('chatMessagesList');
+    if (!list) return;
+
+    if (!messages || messages.length === 0) {
+        list.innerHTML = `
+            <div class="empty-state" style="padding:40px 10px;">
+                <div class="empty-icon">💬</div>
+                <div class="empty-text">هنوز پیامی نیست</div>
+            </div>
+        `;
+        return;
+    }
+
+    list.innerHTML = messages.map(m => {
+        const isAdmin = m.sender_type === 'admin';
+        const sender = isAdmin ? '👤 مدیر' : ('👤 ' + (m.sender_name || 'عضو'));
+        return `
+            <div class="chat-msg ${isAdmin ? 'admin' : 'member'}">
+                <span class="msg-sender">${escapeHtml(sender)}</span>
+                ${escapeHtml(m.content)}
+                <span class="msg-meta">${m.time || ''}</span>
+            </div>
+        `;
+    }).join('');
+
+    // اسکرول به پایین
+    setTimeout(() => { list.scrollTop = list.scrollHeight; }, 50);
+}
+
+
+async function sendChatMessage() {
+    if (!currentChatRoom) return;
+
+    const input = document.getElementById('chatMessageInput');
+    const btn = document.getElementById('chatSendBtn');
+
+    const content = input.value.trim();
+    if (!content) return;
+
+    btn.disabled = true;
+
+    try {
+        const { data, error } = await supabaseClient.rpc('owner_send_chat_message', {
+            p_room_id: currentChatRoom.id,
+            p_content: content,
+        });
+
+        if (error || !data?.success) {
+            showToast('خطا: ' + (error?.message || data?.error || 'نامشخص'), 'error');
+            return;
+        }
+
+        input.value = '';
+        // اضافه‌ی پیام به لیست بدون refresh کامل
+        const list = document.getElementById('chatMessagesList');
+        const empty = list.querySelector('.empty-state');
+        if (empty) empty.remove();
+
+        const html = `
+            <div class="chat-msg admin">
+                <span class="msg-sender">👤 مدیر</span>
+                ${escapeHtml(content)}
+                <span class="msg-meta">${new Date().toLocaleTimeString('fa-IR', {hour: '2-digit', minute:'2-digit'})}</span>
+            </div>
+        `;
+        list.insertAdjacentHTML('beforeend', html);
+        setTimeout(() => { list.scrollTop = list.scrollHeight; }, 30);
+
+    } catch (err) {
+        console.error('sendChatMessage:', err);
+        showToast('خطای غیرمنتظره', 'error');
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+
+function startChatRefresh() {
+    stopChatRefresh();
+    chatRefreshTimer = setInterval(async () => {
+        if (!currentChatRoom) return;
+        await loadChatMessages();
+    }, 2000);  // ⚡ هر ۲ ثانیه
+}
+
+
+function stopChatRefresh() {
+    if (chatRefreshTimer) {
+        clearInterval(chatRefreshTimer);
+        chatRefreshTimer = null;
+    }
+}
+
+
+// Enter برای ارسال
+document.addEventListener('DOMContentLoaded', () => {
+    const inp = document.getElementById('chatMessageInput');
+    if (inp) {
+        inp.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendChatMessage();
+            }
+        });
+    }
+});
 
 

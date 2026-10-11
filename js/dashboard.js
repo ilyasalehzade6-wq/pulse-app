@@ -299,6 +299,8 @@ function switchPage(pageName) {
     if (reportsContent) reportsContent.style.display = 'none';
     const settingsContent = document.getElementById('settingsContent');
     if (settingsContent) settingsContent.style.display = 'none';
+    const announcementsContent = document.getElementById('announcementsContent');
+    if (announcementsContent) announcementsContent.style.display = 'none';
 
     // ─── نav buttons ───
     document.querySelectorAll('.nav-item').forEach(btn => {
@@ -326,6 +328,10 @@ function switchPage(pageName) {
     } else if (pageName === 'settings') {
         if (settingsContent) settingsContent.style.display = 'block';
         initSettings();
+    } else if (pageName === 'announcements') {
+        const ac = document.getElementById('announcementsContent');
+        if (ac) ac.style.display = 'block';
+        loadAnnouncements();
     } else {
         // صفحات دیگه
         comingSoon(pageName);

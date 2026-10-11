@@ -73,30 +73,43 @@ async function loadFinance() {
 
         financeMembers = members || [];
 
-        // ─── پرداخت‌های این ماه ───
-        // 🔤 برای شمسی: YYYY-MM/01 تا YYYY-MM/31
-        const monthStart = financeMonth + '/01';
-        const monthEnd = getShamsiMonthEnd(financeMonth).replace(/-/g, '/');
-
-        const { data: payments, error: pErr } = await supabaseClient
+        // ─── پرداخت‌ها (بدون فیلتر تاریخ توی Supabase — چون type=date) ───
+        const { data: allPayments, error: pErr } = await supabaseClient
             .from('payments')
             .select('*')
             .eq('gym_id', gymId)
-            .gte('payment_date', monthStart)
-            .lte('payment_date', monthEnd)
-            .order('payment_date', { ascending: false });
+            .order('payment_date', { ascending: false })
+            .limit(500);
 
-        if (pErr) throw pErr;
-        financePayments = payments || [];
+        if (pErr) {
+            console.error('❌ خطای پرداخت‌ها:', pErr);
+            throw pErr;
+        }
 
-        // ─── اقساط معلق ───
+        // 🔤 فیلتر توی JS (چون payment_date توی Supabase date هست)
+        const monthPrefix = financeMonth.replace(/-/g, '-');  // "1405-07"
+        const allPays = allPayments || [];
+        financePayments = allPays.filter(p => {
+            const d = String(p.payment_date || '');
+            // چک کن با "1405-07" شروع میشه
+            return d.startsWith(monthPrefix);
+        });
+
+        console.log(`💰 کل: ${allPays.length} | این ماه (${monthPrefix}): ${financePayments.length}`);
+        if (financePayments.length > 0) {
+            console.log('   اولین:', financePayments[0]);
+        }
+
+        // ─── اقساط معلق (بدون فیلتر تاریخ توی Supabase) ───
         const { data: installments, error: iErr } = await supabaseClient
             .from('installments')
             .select('*')
             .eq('gym_id', gymId)
             .eq('is_paid', false)
             .order('due_date', { ascending: true })
-            .limit(20);
+            .limit(50);
+
+        console.log(`⏳ ${(installments || []).length} قسط معلق`);
 
         if (iErr) throw iErr;
         financeInstallments = installments || [];

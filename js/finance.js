@@ -9,12 +9,46 @@ let financeInstallments = [];
 let financeMembers = [];
 let financeMonth = null;
 
+
+// ═══════════════════════════════════════════════════════
+//  🔤 تبدیل تاریخ میلادی به شمسی
+// ═══════════════════════════════════════════════════════
+function getCurrentShamsiMonth() {
+    const now = new Date();
+    const gy = now.getFullYear();
+    const gm = now.getMonth() + 1;
+    const gd = now.getDate();
+    const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+    let jy = (gy <= 1600) ? 0 : 979;
+    let gy2 = (gy <= 1600) ? gy - 621 : gy - 1600;
+    const gy2b = (gm > 2) ? (gy2 + 1) : gy2;
+    let days = (365 * gy2) + Math.floor((gy2b + 3) / 4) - Math.floor((gy2b + 99) / 100) + Math.floor((gy2b + 399) / 400) - 80 + gd + g_d_m[gm - 1];
+    jy += 33 * Math.floor(days / 12053);
+    days %= 12053;
+    jy += 4 * Math.floor(days / 1461);
+    days %= 1461;
+    if (days > 365) { jy += Math.floor((days - 1) / 365); days = (days - 1) % 365; }
+    let jm;
+    if (days < 186) { jm = 1 + Math.floor(days / 31); }
+    else { jm = 7 + Math.floor((days - 186) / 30); }
+    return jy + '-' + String(jm).padStart(2, '0');
+}
+
+function getShamsiMonthEnd(shamsiMonth) {
+    // شمسی: 6 ماه اول 31 روز، بعدی 30 روز
+    const parts = shamsiMonth.split('-');
+    const jm = parseInt(parts[1], 10);
+    const lastDay = jm <= 6 ? 31 : 30;
+    return shamsiMonth + '-' + String(lastDay).padStart(2, '0');
+}
+
+
 // ═══════════════════════════════════════════════════════
 // راه‌اندازی
 // ═══════════════════════════════════════════════════════
 async function initFinance() {
     if (!financeMonth) {
-        financeMonth = getCurrentMonthISO();
+        financeMonth = getCurrentShamsiMonth();  // 🔤 ماه شمسی
         const input = document.getElementById('financeMonth');
         if (input) input.value = financeMonth;
     }
@@ -40,8 +74,9 @@ async function loadFinance() {
         financeMembers = members || [];
 
         // ─── پرداخت‌های این ماه ───
-        const monthStart = financeMonth + '-01';
-        const monthEnd = getMonthEnd(financeMonth);
+        // 🔤 برای شمسی: YYYY-MM/01 تا YYYY-MM/31
+        const monthStart = financeMonth + '/01';
+        const monthEnd = getShamsiMonthEnd(financeMonth).replace(/-/g, '/');
 
         const { data: payments, error: pErr } = await supabaseClient
             .from('payments')
@@ -189,7 +224,7 @@ function onFinanceMonthChange() {
 }
 
 function setFinanceMonthCurrent() {
-    financeMonth = getCurrentMonthISO();
+    financeMonth = getCurrentShamsiMonth();  // 🔤 ماه شمسی
     const input = document.getElementById('financeMonth');
     if (input) input.value = financeMonth;
     loadFinance();

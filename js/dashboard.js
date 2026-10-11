@@ -343,3 +343,303 @@ function switchPage(pageName) {
         if (sb) sb.classList.remove('open');
     }
 }
+
+
+// ═══════════════════════════════════════════════════════
+//  📢 پیام‌های گروهی
+// ═══════════════════════════════════════════════════════
+let announcementsCache = [];
+
+const PRIORITY_META = {
+    normal:    { label: 'عادی',  icon: '⚪', css: 'normal' },
+    important: { label: 'مهم',   icon: '🟡', css: 'important' },
+    urgent:    { label: 'فوری',  icon: '🔴', css: 'urgent' },
+};
+
+
+async function loadAnnouncements() {
+    const list = document.getElementById('announcementsList');
+    if (!list) return;
+
+    try {
+        list.innerHTML = '<div class="loading">در حال بارگذاری...</div>';
+
+        const { data, error } = await supabaseClient.rpc('owner_list_announcements');
+
+        if (error) {
+            console.error('ann list error:', error);
+            list.innerHTML = '<div class="error">خطا در بارگذاری پیام‌ها</div>';
+            return;
+        }
+
+        if (!data?.success) {
+            list.innerHTML = '<div class="error">' + (data?.error || 'خطا') + '</div>';
+            return;
+        }
+
+        announcementsCache = data.announcements || [];
+        renderAnnouncements();
+    } catch (err) {
+        console.error('loadAnnouncements:', err);
+        list.innerHTML = '<div class="error">خطای غیرمنتظره</div>';
+    }
+}
+
+
+function renderAnnouncements() {
+    const list = document.getElementById('announcementsList');
+    if (!list) return;
+
+    if (announcementsCache.length === 0) {
+        list.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">📢</div>
+                <div class="empty-text">هیچ پیامی وجود ندارد</div>
+                <button class="btn-primary" style="margin-top:15px;" onclick="openAnnouncementForm()">
+                    ➕ اولین پیام را بسازید
+                </button>
+            </div>
+        `;
+        return;
+    }
+
+    list.innerHTML = announcementsCache.map(a => {
+        const meta = PRIORITY_META[a.priority] || PRIORITY_META.normal;
+        const pinned = !!a.is_pinned;
+        const contentPreview = (a.content || '').length > 250
+            ? a.content.substring(0, 250) + '...'
+            : a.content;
+
+        return `
+            <div class="announcement-card ${pinned ? 'pinned' : ''} ${meta.css}">
+                <div class="ann-header">
+                    <h3 class="ann-title ${pinned ? 'pinned-title' : ''}">
+                        ${pinned ? '📌 ' : ''}${escapeHtml(a.title)}
+                    </h3>
+                    <span class="ann-badge ${meta.css}">${meta.icon} ${meta.label}</span>
+                </div>
+
+                <div class="ann-content">${escapeHtml(contentPreview)}</div>
+
+                <div class="ann-meta">
+                    <span>🕐 ${a.created_date || '—'}</span>
+                    <span>💬 ${a.comments_count || 0} نظر</span>
+                </div>
+
+                <div class="ann-actions">
+                    <button onclick="showComments('${a.id}', '${escapeHtml(a.title)}')">
+                        💬 مشاهده نظرها
+                    </button>
+                    <button class="primary" onclick="toggleAnnPin('${a.id}')">
+                        ${pinned ? '📍 برداشتن سنجاق' : '📌 سنجاق'}
+                    </button>
+                    <button onclick="editAnnouncement('${a.id}')">
+                        ✏️ ویرایش
+                    </button>
+                    <button class="danger" onclick="deleteAnnouncement('${a.id}')">
+                        🗑️ حذف
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+
+function escapeHtml(s) {
+    if (!s) return '';
+    return String(s).replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[m]));
+}
+
+
+// ─── Modal: فرم پیام ───
+function openAnnouncementForm(editData = null) {
+    const modal = document.getElementById('announcementModal');
+    if (!modal) return;
+
+    document.getElementById('annModalTitle').textContent = editData ? '✏️ ویرایش پیام' : '📢 پیام جدید';
+    document.getElementById('annSubmitBtn').textContent = editData ? '💾 ذخیره' : '📤 ارسال';
+
+    document.getElementById('annTitle').value = editData?.title || '';
+    document.getElementById('annContent').value = editData?.content || '';
+    document.getElementById('annPriority').value = editData?.priority || 'normal';
+    document.getElementById('annPinned').checked = !!editData?.is_pinned;
+    document.getElementById('annEditId').value = editData?.id || '';
+
+    modal.style.display = 'flex';
+}
+
+
+function closeAnnouncementForm() {
+    const modal = document.getElementById('announcementModal');
+    if (modal) modal.style.display = 'none';
+}
+
+
+async function submitAnnouncement() {
+    const title = document.getElementById('annTitle').value.trim();
+    const content = document.getElementById('annContent').value.trim();
+    const priority = document.getElementById('annPriority').value;
+    const isPinned = document.getElementById('annPinned').checked;
+    const editId = document.getElementById('annEditId').value;
+
+    if (!title || !content) {
+        showToast('عنوان و متن پیام الزامی است', 'error');
+        return;
+    }
+
+    const btn = document.getElementById('annSubmitBtn');
+    btn.disabled = true;
+    btn.textContent = 'در حال ارسال...';
+
+    try {
+        let result;
+        if (editId) {
+            result = await supabaseClient.rpc('owner_update_announcement', {
+                p_id: editId,
+                p_title: title,
+                p_content: content,
+                p_priority: priority,
+                p_is_pinned: isPinned,
+            });
+        } else {
+            result = await supabaseClient.rpc('owner_create_announcement', {
+                p_title: title,
+                p_content: content,
+                p_priority: priority,
+                p_is_pinned: isPinned,
+            });
+        }
+
+        if (result.error || !result.data?.success) {
+            showToast('خطا: ' + (result.error?.message || result.data?.error || 'نامشخص'), 'error');
+            return;
+        }
+
+        showToast(editId ? '✅ پیام ویرایش شد' : '✅ پیام ارسال شد', 'success');
+        closeAnnouncementForm();
+        await loadAnnouncements();
+    } catch (err) {
+        console.error('submitAnn:', err);
+        showToast('خطای غیرمنتظره', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = editId ? '💾 ذخیره' : '📤 ارسال';
+    }
+}
+
+
+async function editAnnouncement(id) {
+    const a = announcementsCache.find(x => x.id === id);
+    if (!a) return;
+    openAnnouncementForm(a);
+}
+
+
+async function toggleAnnPin(id) {
+    try {
+        const { data, error } = await supabaseClient.rpc('owner_toggle_pin', { p_id: id });
+        if (error) {
+            showToast('خطا: ' + error.message, 'error');
+            return;
+        }
+        showToast(data?.is_pinned ? '📌 سنجاق شد' : '📍 برداشته شد', 'success');
+        await loadAnnouncements();
+    } catch (err) {
+        console.error('togglePin:', err);
+    }
+}
+
+
+async function deleteAnnouncement(id) {
+    if (!confirm('آیا از حذف این پیام مطمئن هستید؟')) return;
+
+    try {
+        const { data, error } = await supabaseClient.rpc('owner_delete_announcement', { p_id: id });
+        if (error) {
+            showToast('خطا: ' + error.message, 'error');
+            return;
+        }
+        showToast('🗑️ پیام حذف شد', 'success');
+        await loadAnnouncements();
+    } catch (err) {
+        console.error('deleteAnn:', err);
+    }
+}
+
+
+// ─── Modal: نظرها ───
+async function showComments(annId, title) {
+    const modal = document.getElementById('commentsModal');
+    const list = document.getElementById('commentsList');
+    if (!modal || !list) return;
+
+    document.getElementById('commentsModalTitle').textContent = `💬 نظرها — ${title}`;
+    list.innerHTML = '<div class="loading">در حال بارگذاری...</div>';
+    modal.style.display = 'flex';
+
+    try {
+        const { data, error } = await supabaseClient.rpc('owner_get_comments', { p_id: annId });
+
+        if (error || !data?.success) {
+            list.innerHTML = '<div class="error">خطا در بارگذاری نظرها</div>';
+            return;
+        }
+
+        const comments = data.comments || [];
+
+        if (comments.length === 0) {
+            list.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">💬</div>
+                    <div class="empty-text">هنوز نظری ثبت نشده</div>
+                </div>
+            `;
+            return;
+        }
+
+        list.innerHTML = comments.map(c => `
+            <div class="comment-item">
+                <div class="comment-header">
+                    <span class="comment-name">👤 ${escapeHtml(c.member_name)}</span>
+                    <div>
+                        <span class="comment-date">${c.created_date || ''}</span>
+                        <button class="comment-delete" onclick="deleteComment('${c.id}', '${annId}', '${escapeHtml(title)}')">🗑️</button>
+                    </div>
+                </div>
+                <div class="comment-text">${escapeHtml(c.content)}</div>
+            </div>
+        `).join('');
+
+    } catch (err) {
+        console.error('showComments:', err);
+        list.innerHTML = '<div class="error">خطای غیرمنتظره</div>';
+    }
+}
+
+
+function closeCommentsModal() {
+    const modal = document.getElementById('commentsModal');
+    if (modal) modal.style.display = 'none';
+}
+
+
+async function deleteComment(commentId, annId, title) {
+    if (!confirm('حذف این نظر؟')) return;
+
+    try {
+        const { data, error } = await supabaseClient.rpc('owner_delete_comment', { p_comment_id: commentId });
+        if (error) {
+            showToast('خطا: ' + error.message, 'error');
+            return;
+        }
+        showToast('🗑️ نظر حذف شد', 'success');
+        showComments(annId, title);
+    } catch (err) {
+        console.error('deleteComment:', err);
+    }
+}
+
+

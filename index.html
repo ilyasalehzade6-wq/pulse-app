@@ -59,6 +59,11 @@
                 <span class="nav-icon">💰</span>
                 امور مالی
             </button>
+
+            <button class="nav-item" data-page="announcements" onclick="switchPage('announcements')">
+                <span class="nav-icon">📢</span>
+                <span class="nav-text">پیام‌های گروهی</span>
+            </button>
             <button class="nav-item" data-page="attendance" onclick="switchPage('attendance')">
                 <span class="nav-icon">✅</span>
                 حضور و غیاب
@@ -807,6 +812,71 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+
+<!-- 📢 پیام‌های گروهی -->
+<div id="announcementsContent" style="display: none;">
+    <div class="section-header">
+        <h2>📢 پیام‌های گروهی</h2>
+        <button class="btn-primary" onclick="openAnnouncementForm()">
+            ➕ پیام جدید
+        </button>
+    </div>
+
+    <div id="announcementsList" class="announcements-list">
+        <div class="loading">در حال بارگذاری...</div>
+    </div>
+</div>
+
+<!-- 📝 فرم پیام جدید (modal) -->
+<div id="announcementModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="annModalTitle">📢 پیام جدید</h3>
+            <button class="modal-close" onclick="closeAnnouncementForm()">✖</button>
+        </div>
+
+        <div class="modal-body">
+            <label>عنوان:</label>
+            <input type="text" id="annTitle" placeholder="عنوان پیام..." maxlength="100" />
+
+            <label>اولویت:</label>
+            <select id="annPriority">
+                <option value="normal">⚪ عادی</option>
+                <option value="important">🟡 مهم</option>
+                <option value="urgent">🔴 فوری</option>
+            </select>
+
+            <label>متن پیام:</label>
+            <textarea id="annContent" rows="6" placeholder="متن کامل پیام..." maxlength="2000"></textarea>
+
+            <label class="checkbox-label">
+                <input type="checkbox" id="annPinned" />
+                📌 سنجاق به بالا
+            </label>
+
+            <input type="hidden" id="annEditId" value="" />
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeAnnouncementForm()">انصراف</button>
+            <button class="btn-primary" id="annSubmitBtn" onclick="submitAnnouncement()">📤 ارسال</button>
+        </div>
+    </div>
+</div>
+
+<!-- 💬 نظرها (modal) -->
+<div id="commentsModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="commentsModalTitle">💬 نظرها</h3>
+            <button class="modal-close" onclick="closeCommentsModal()">✖</button>
+        </div>
+        <div class="modal-body">
+            <div id="commentsList" class="comments-list"></div>
+        </div>
+    </div>
+</div>
 
 <script src="js/license-utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

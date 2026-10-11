@@ -9,12 +9,38 @@ let reportMembers = [];
 let reportAttendances = [];
 let reportPayments = [];
 
+
+// ═══════════════════════════════════════════════════════
+//  🔤 توابع تاریخ شمسی
+// ═══════════════════════════════════════════════════════
+function getCurrentShamsiMonth() {
+    const now = new Date();
+    const gy = now.getFullYear();
+    const gm = now.getMonth() + 1;
+    const gd = now.getDate();
+    const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+    let jy = (gy <= 1600) ? 0 : 979;
+    let gy2 = (gy <= 1600) ? gy - 621 : gy - 1600;
+    const gy2b = (gm > 2) ? (gy2 + 1) : gy2;
+    let days = (365 * gy2) + Math.floor((gy2b + 3) / 4) - Math.floor((gy2b + 99) / 100) + Math.floor((gy2b + 399) / 400) - 80 + gd + g_d_m[gm - 1];
+    jy += 33 * Math.floor(days / 12053);
+    days %= 12053;
+    jy += 4 * Math.floor(days / 1461);
+    days %= 1461;
+    if (days > 365) { jy += Math.floor((days - 1) / 365); days = (days - 1) % 365; }
+    let jm;
+    if (days < 186) { jm = 1 + Math.floor(days / 31); }
+    else { jm = 7 + Math.floor((days - 186) / 30); }
+    return jy + '-' + String(jm).padStart(2, '0');
+}
+
+
 // ═══════════════════════════════════════════════════════
 // راه‌اندازی
 // ═══════════════════════════════════════════════════════
 async function initReports() {
     if (!reportMonth) {
-        reportMonth = getCurrentMonthISO();
+        reportMonth = getCurrentShamsiMonth();  // 🔤 شمسی
         const input = document.getElementById('reportMonth');
         if (input) input.value = reportMonth;
     }
@@ -31,8 +57,8 @@ async function loadReports() {
         const gymId = await getGymId();
         if (!gymId) throw new Error('gym_id پیدا نشد');
 
-        const monthStart = reportMonth + '-01';
-        const monthEnd = getMonthEnd(reportMonth);
+        // 🔤 ماه شمسی
+        const monthPrefix = reportMonth;  // "1405-07"
 
         // ─── ۱. اعضا ───
         const { data: members, error: mErr } = await supabaseClient
@@ -43,27 +69,37 @@ async function loadReports() {
         if (mErr) throw mErr;
         reportMembers = members || [];
 
-        // ─── ۲. حضور این ماه ───
-        const { data: attendances, error: aErr } = await supabaseClient
+        // ─── ۲. حضور (بدون فیلتر توی Supabase) ───
+        const { data: allAttendances, error: aErr } = await supabaseClient
             .from('attendances')
             .select('id, member_id, attendance_date, status')
             .eq('gym_id', gymId)
-            .gte('attendance_date', monthStart)
-            .lte('attendance_date', monthEnd);
+            .order('attendance_date', { ascending: false })
+            .limit(1000);
 
         if (aErr) throw aErr;
-        reportAttendances = attendances || [];
+        reportAttendances = (allAttendances || []).filter(a => {
+            const d = String(a.attendance_date || '');
+            return d.startsWith(monthPrefix);
+        });
+
+        console.log(`📊 حضور: کل=${(allAttendances||[]).length} | این ماه (${monthPrefix})=${reportAttendances.length}`);
 
         // ─── ۳. پرداخت‌های این ماه ───
-        const { data: payments, error: pErr } = await supabaseClient
+        const { data: allPayments, error: pErr } = await supabaseClient
             .from('payments')
             .select('id, amount, payment_date')
             .eq('gym_id', gymId)
-            .gte('payment_date', monthStart)
-            .lte('payment_date', monthEnd);
+            .order('payment_date', { ascending: false })
+            .limit(500);
 
         if (pErr) throw pErr;
-        reportPayments = payments || [];
+        reportPayments = (allPayments || []).filter(p => {
+            const d = String(p.payment_date || '');
+            return d.startsWith(monthPrefix);
+        });
+
+        console.log(`💰 پرداخت: کل=${(allPayments||[]).length} | این ماه=${reportPayments.length}`);
 
         // ─── رندر ───
         updateReportStats();
@@ -87,16 +123,33 @@ function updateReportStats() {
     const presentCount = reportAttendances.filter(a => a.status === 'present').length;
     const income = reportPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
 
-    // نرخ حضور = (تعداد حضور / (تعداد اعضا × تعداد روزهای ماه)) × 100
-    const daysInMonth = new Date(
-        parseInt(reportMonth.split('-')[0]),
-        parseInt(reportMonth.split('-')[1]),
-        0
-    ).getDate();
+    // 🔤 نرخ حضور
+    const parts = reportMonth.split('-');
+    const jm = parseInt(parts[1], 10);
+    // ۶ ماه اول ۳۱ روز، بقیه ۳۰ روز
+    const daysInMonth = jm <= 6 ? 31 : 30;
 
-    const today = new Date();
-    const isCurrentMonth = reportMonth === getCurrentMonthISO();
-    const daysPassed = isCurrentMonth ? today.getDate() : daysInMonth;
+    // روز امروز شمسی
+    const now = new Date();
+    const gy = now.getFullYear();
+    const gm = now.getMonth() + 1;
+    const gd = now.getDate();
+    const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+    let jy = (gy <= 1600) ? 0 : 979;
+    let gy2 = (gy <= 1600) ? gy - 621 : gy - 1600;
+    const gy2b = (gm > 2) ? (gy2 + 1) : gy2;
+    let days = (365 * gy2) + Math.floor((gy2b + 3) / 4) - Math.floor((gy2b + 99) / 100) + Math.floor((gy2b + 399) / 400) - 80 + gd + g_d_m[gm - 1];
+    jy += 33 * Math.floor(days / 12053);
+    days %= 12053;
+    jy += 4 * Math.floor(days / 1461);
+    days %= 1461;
+    if (days > 365) { jy += Math.floor((days - 1) / 365); days = (days - 1) % 365; }
+    let jd;
+    if (days < 186) { jm = 1 + Math.floor(days / 31); jd = 1 + (days % 31); }
+    else { jm = 7 + Math.floor((days - 186) / 30); jd = 1 + ((days - 186) % 30); }
+    const todayShamsiMonth = jy + '-' + String(jm).padStart(2, '0');
+    const isCurrentMonth = reportMonth === todayShamsiMonth;
+    const daysPassed = isCurrentMonth ? jd : daysInMonth;
 
     const expected = totalMembers * daysPassed;
     const rate = expected > 0 ? Math.round((presentCount / expected) * 100) : 0;
@@ -215,14 +268,16 @@ function renderNewMembers() {
     const badgeEl = document.getElementById('newMembersBadge');
     if (!listEl) return;
 
-    const monthStart = reportMonth + '-01';
-    const monthEnd = getMonthEnd(reportMonth);
+    // 🔤 فیلتر بر اساس پیشوند ماه شمسی
+    const monthPrefix = reportMonth;  // "1405-07"
 
     const newMembers = reportMembers.filter(m => {
-        const d = m.join_date || (m.created_at ? m.created_at.slice(0, 10) : null);
+        const d = String(m.join_date || (m.created_at ? m.created_at.slice(0, 10) : '') || '');
         if (!d) return false;
-        return d >= monthStart && d <= monthEnd;
+        return d.startsWith(monthPrefix);
     });
+
+    console.log(`🆕 اعضای جدید این ماه: ${newMembers.length}`);
 
     if (badgeEl) badgeEl.textContent = newMembers.length;
 
@@ -259,7 +314,7 @@ function onReportMonthChange() {
 }
 
 function setReportMonthCurrent() {
-    reportMonth = getCurrentMonthISO();
+    reportMonth = getCurrentShamsiMonth();  // 🔤 شمسی
     const input = document.getElementById('reportMonth');
     if (input) input.value = reportMonth;
     loadReports();
@@ -267,7 +322,7 @@ function setReportMonthCurrent() {
 
 function getCurrentMonthISO() {
     const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;  // میلادی (برای fallback)
 }
 
 function getMonthEnd(yearMonth) {

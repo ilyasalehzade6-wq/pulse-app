@@ -209,6 +209,35 @@
 
         </div>
 
+<!-- 💬 پیام‌رسان -->
+<div id="chatContent" style="display: none;">
+    <!-- حالت لیست اتاق‌ها -->
+    <div id="chatRoomList">
+        <div class="section-header">
+            <h2>💬 پیام‌رسان</h2>
+            <button class="btn-secondary" onclick="loadChatRooms()">🔄</button>
+        </div>
+        <div id="chatRoomsList" class="chat-rooms-list">
+            <div class="loading">در حال بارگذاری...</div>
+        </div>
+    </div>
+
+    <!-- حالت گفت‌وگو -->
+    <div id="chatConversation" style="display: none;">
+        <div class="chat-conv-header">
+            <button class="chat-back-btn" onclick="backToRoomList()">↩️ بازگشت</button>
+            <h3 id="chatConvTitle">—</h3>
+        </div>
+
+        <div id="chatMessagesList" class="chat-messages-list"></div>
+
+        <div class="chat-input-bar">
+            <textarea id="chatMessageInput" placeholder="پیام بنویس..." rows="1" maxlength="1000"></textarea>
+            <button id="chatSendBtn" onclick="sendChatMessage()">📤</button>
+        </div>
+    </div>
+</div>
+
         <!-- Members Content -->
         <div id="membersContent" style="display: none;">
 
@@ -813,45 +842,6 @@
 
 <div class="toast" id="toast"></div>
 
-
-<!-- 💬 پیام‌رسان -->
-<div id="chatContent" style="display: none;">
-
-    <!-- حالت ۱: لیست اتاق‌ها -->
-    <div id="chatRoomList">
-        <div class="section-header">
-            <h2>💬 پیام‌رسان</h2>
-            <button class="btn-secondary" onclick="loadChatRooms()">🔄</button>
-        </div>
-        <div id="chatRoomsList" class="chat-rooms-list">
-            <div class="loading">در حال بارگذاری...</div>
-        </div>
-    </div>
-
-    <!-- حالت ۲: گفت‌وگو -->
-    <div id="chatConversation" style="display: none;">
-        <div class="chat-conv-header">
-            <button class="chat-back-btn" onclick="backToRoomList()">↩️</button>
-            <h3 id="chatConvTitle">—</h3>
-            <span class="chat-conv-unread" id="chatConvUnread"></span>
-        </div>
-
-        <div id="chatMessagesList" class="chat-messages-list">
-            <!-- پیام‌ها اینجا لود میشن -->
-        </div>
-
-        <div class="chat-input-bar">
-            <textarea
-                id="chatMessageInput"
-                placeholder="پیام بنویس..."
-                rows="1"
-                maxlength="1000"
-            ></textarea>
-            <button id="chatSendBtn" onclick="sendChatMessage()">📤</button>
-        </div>
-    </div>
-
-</div>
 
 <script src="js/license-utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

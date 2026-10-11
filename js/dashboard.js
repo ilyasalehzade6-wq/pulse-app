@@ -302,7 +302,10 @@ function switchPage(pageName) {
     const announcementsContent = document.getElementById('announcementsContent');
     if (announcementsContent) announcementsContent.style.display = 'none';
     const chatContent = document.getElementById('chatContent');
-    if (chatContent) chatContent.style.display = 'none';
+    if (chatContent) {
+        chatContent.style.display = 'none';
+        chatContent.classList.remove('active');
+    }
 
     // ─── نav buttons ───
     document.querySelectorAll('.nav-item').forEach(btn => {
@@ -332,7 +335,7 @@ function switchPage(pageName) {
         initSettings();
     } else if (pageName === 'chat') {
         const cc = document.getElementById('chatContent');
-        if (cc) cc.style.display = 'block';
+        if (cc) { cc.style.display = 'flex'; cc.classList.add('active'); }
         loadChatRooms();
     } else {
         // صفحات دیگه

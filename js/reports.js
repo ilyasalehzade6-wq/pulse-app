@@ -125,7 +125,7 @@ function updateReportStats() {
 
     // 🔤 نرخ حضور
     const parts = reportMonth.split('-');
-    const jm = parseInt(parts[1], 10);
+    let jm = parseInt(parts[1], 10);  // let (تغییر می‌کنه)
     // ۶ ماه اول ۳۱ روز، بقیه ۳۰ روز
     const daysInMonth = jm <= 6 ? 31 : 30;
 

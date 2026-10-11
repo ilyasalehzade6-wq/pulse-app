@@ -1,0 +1,361 @@
+/**
+ * 📈 گزارش‌ها — فقط مشاهده
+ */
+
+
+
+let reportMonth = null;
+let reportMembers = [];
+let reportAttendances = [];
+let reportPayments = [];
+
+
+// ═══════════════════════════════════════════════════════
+//  🔤 توابع تاریخ شمسی
+// ═══════════════════════════════════════════════════════
+function getCurrentShamsiMonth() {
+    const now = new Date();
+    const gy = now.getFullYear();
+    const gm = now.getMonth() + 1;
+    const gd = now.getDate();
+    const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+    let jy = (gy <= 1600) ? 0 : 979;
+    let gy2 = (gy <= 1600) ? gy - 621 : gy - 1600;
+    const gy2b = (gm > 2) ? (gy2 + 1) : gy2;
+    let days = (365 * gy2) + Math.floor((gy2b + 3) / 4) - Math.floor((gy2b + 99) / 100) + Math.floor((gy2b + 399) / 400) - 80 + gd + g_d_m[gm - 1];
+    jy += 33 * Math.floor(days / 12053);
+    days %= 12053;
+    jy += 4 * Math.floor(days / 1461);
+    days %= 1461;
+    if (days > 365) { jy += Math.floor((days - 1) / 365); days = (days - 1) % 365; }
+    let jm;
+    if (days < 186) { jm = 1 + Math.floor(days / 31); }
+    else { jm = 7 + Math.floor((days - 186) / 30); }
+    return jy + '-' + String(jm).padStart(2, '0');
+}
+
+
+// ═══════════════════════════════════════════════════════
+// راه‌اندازی
+// ═══════════════════════════════════════════════════════
+async function initReports() {
+    if (!reportMonth) {
+        reportMonth = getCurrentShamsiMonth();  // 🔤 شمسی
+        const input = document.getElementById('reportMonth');
+        if (input) input.value = reportMonth;
+    }
+
+    await loadReports();
+}
+
+// ═══════════════════════════════════════════════════════
+// بارگذاری
+// ═══════════════════════════════════════════════════════
+async function loadReports() {
+    showRepLoading(true);
+    try {
+        const gymId = await getGymId();
+        if (!gymId) throw new Error('gym_id پیدا نشد');
+
+        // 🔤 ماه شمسی
+        const monthPrefix = reportMonth;  // "1405-07"
+
+        // ─── ۱. اعضا ───
+        const { data: members, error: mErr } = await supabaseClient
+            .from('members')
+            .select('id, full_name, member_code, join_date, is_active, created_at')
+            .eq('gym_id', gymId);
+
+        if (mErr) throw mErr;
+        reportMembers = members || [];
+
+        // ─── ۲. حضور (بدون فیلتر توی Supabase) ───
+        const { data: allAttendances, error: aErr } = await supabaseClient
+            .from('attendances')
+            .select('id, member_id, attendance_date, status')
+            .eq('gym_id', gymId)
+            .order('attendance_date', { ascending: false })
+            .limit(1000);
+
+        if (aErr) throw aErr;
+        reportAttendances = (allAttendances || []).filter(a => {
+            const d = String(a.attendance_date || '');
+            return d.startsWith(monthPrefix);
+        });
+
+        console.log(`📊 حضور: کل=${(allAttendances||[]).length} | این ماه (${monthPrefix})=${reportAttendances.length}`);
+
+        // ─── ۳. پرداخت‌های این ماه ───
+        const { data: allPayments, error: pErr } = await supabaseClient
+            .from('payments')
+            .select('id, amount, payment_date')
+            .eq('gym_id', gymId)
+            .order('payment_date', { ascending: false })
+            .limit(500);
+
+        if (pErr) throw pErr;
+        reportPayments = (allPayments || []).filter(p => {
+            const d = String(p.payment_date || '');
+            return d.startsWith(monthPrefix);
+        });
+
+        console.log(`💰 پرداخت: کل=${(allPayments||[]).length} | این ماه=${reportPayments.length}`);
+
+        // ─── رندر ───
+        updateReportStats();
+        renderAttendanceChart();
+        renderTopMembers();
+        renderNewMembers();
+
+    } catch (e) {
+        console.error('خطا در بارگذاری گزارش‌ها:', e);
+        showToast('❌ خطا: ' + e.message, 'error');
+    } finally {
+        showRepLoading(false);
+    }
+}
+
+// ═══════════════════════════════════════════════════════
+// آمار کلی
+// ═══════════════════════════════════════════════════════
+function updateReportStats() {
+    const totalMembers = reportMembers.length;
+    const presentCount = reportAttendances.filter(a => a.status === 'present').length;
+    const income = reportPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+
+    // 🔤 نرخ حضور
+    const parts = reportMonth.split('-');
+    const jm = parseInt(parts[1], 10);
+    // ۶ ماه اول ۳۱ روز، بقیه ۳۰ روز
+    const daysInMonth = jm <= 6 ? 31 : 30;
+
+    // روز امروز شمسی
+    const now = new Date();
+    const gy = now.getFullYear();
+    const gm = now.getMonth() + 1;
+    const gd = now.getDate();
+    const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+    let jy = (gy <= 1600) ? 0 : 979;
+    let gy2 = (gy <= 1600) ? gy - 621 : gy - 1600;
+    const gy2b = (gm > 2) ? (gy2 + 1) : gy2;
+    let days = (365 * gy2) + Math.floor((gy2b + 3) / 4) - Math.floor((gy2b + 99) / 100) + Math.floor((gy2b + 399) / 400) - 80 + gd + g_d_m[gm - 1];
+    jy += 33 * Math.floor(days / 12053);
+    days %= 12053;
+    jy += 4 * Math.floor(days / 1461);
+    days %= 1461;
+    if (days > 365) { jy += Math.floor((days - 1) / 365); days = (days - 1) % 365; }
+    let jd;
+    if (days < 186) { jm = 1 + Math.floor(days / 31); jd = 1 + (days % 31); }
+    else { jm = 7 + Math.floor((days - 186) / 30); jd = 1 + ((days - 186) % 30); }
+    const todayShamsiMonth = jy + '-' + String(jm).padStart(2, '0');
+    const isCurrentMonth = reportMonth === todayShamsiMonth;
+    const daysPassed = isCurrentMonth ? jd : daysInMonth;
+
+    const expected = totalMembers * daysPassed;
+    const rate = expected > 0 ? Math.round((presentCount / expected) * 100) : 0;
+
+    const el = (id) => document.getElementById(id);
+    if (el('rTotalMembers')) el('rTotalMembers').textContent = totalMembers;
+    if (el('rMonthAttendances')) el('rMonthAttendances').textContent = presentCount;
+    if (el('rAttendanceRate')) el('rAttendanceRate').textContent = rate + '%';
+    if (el('rMonthIncome')) el('rMonthIncome').textContent = formatMoney(income);
+}
+
+// ═══════════════════════════════════════════════════════
+// نمودار حضور روزانه
+// ═══════════════════════════════════════════════════════
+function renderAttendanceChart() {
+    const chartEl = document.getElementById('attendanceChart');
+    const emptyEl = document.getElementById('chartEmpty');
+    if (!chartEl) return;
+
+    // ─── گروه‌بندی حضور بر اساس روز ───
+    const byDay = {};
+    reportAttendances.filter(a => a.status === 'present').forEach(a => {
+        const day = a.attendance_date.slice(-2);
+        byDay[day] = (byDay[day] || 0) + 1;
+    });
+
+    const days = Object.keys(byDay);
+    if (days.length === 0) {
+        chartEl.innerHTML = '';
+        if (emptyEl) emptyEl.style.display = 'block';
+        return;
+    }
+
+    if (emptyEl) emptyEl.style.display = 'none';
+
+    // ─── مرتب‌سازی بر اساس روز ───
+    days.sort();
+
+    // ─── پیدا کردن بیشترین مقدار ───
+    const maxVal = Math.max(...Object.values(byDay), 1);
+
+    chartEl.innerHTML = days.map(day => {
+        const count = byDay[day];
+        const heightPercent = Math.max(10, Math.round((count / maxVal) * 100));
+
+        return `
+            <div class="bar-item">
+                <div class="bar-value">${count}</div>
+                <div class="bar-fill" style="height: ${heightPercent}%;"></div>
+                <div class="bar-label">${day}</div>
+            </div>
+        `;
+    }).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// اعضای برتر
+// ═══════════════════════════════════════════════════════
+function renderTopMembers() {
+    const listEl = document.getElementById('topMembersList');
+    const emptyEl = document.getElementById('topMembersEmpty');
+    if (!listEl) return;
+
+    // ─── شمارش حضور هر عضو ───
+    const countByMember = {};
+    reportAttendances.filter(a => a.status === 'present').forEach(a => {
+        countByMember[a.member_id] = (countByMember[a.member_id] || 0) + 1;
+    });
+
+    // ─── مرتب‌سازی ───
+    const sorted = Object.entries(countByMember)
+        .map(([memberId, count]) => {
+            const m = reportMembers.find(x => x.id === memberId);
+            return { member: m, count };
+        })
+        .filter(x => x.member)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
+
+    if (sorted.length === 0) {
+        listEl.innerHTML = '';
+        if (emptyEl) emptyEl.style.display = 'block';
+        return;
+    }
+
+    if (emptyEl) emptyEl.style.display = 'none';
+
+    const medals = ['🥇', '🥈', '🥉'];
+
+    listEl.innerHTML = sorted.map((item, idx) => {
+        const rank = idx < 3 ? medals[idx] : `#${idx + 1}`;
+        const m = item.member;
+        return `
+            <div class="top-member-card">
+                <div class="top-rank">${rank}</div>
+                <div class="top-avatar">${(m.full_name || '?').charAt(0)}</div>
+                <div class="top-info">
+                    <div class="top-name">${escapeHtml(m.full_name || '—')}</div>
+                    <div class="top-code">🎫 ${escapeHtml(m.member_code || '—')}</div>
+                </div>
+                <div class="top-count">
+                    <div class="top-count-value">${item.count}</div>
+                    <div class="top-count-label">روز</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// اعضای جدید
+// ═══════════════════════════════════════════════════════
+function renderNewMembers() {
+    const listEl = document.getElementById('newMembersList');
+    const emptyEl = document.getElementById('newMembersEmpty');
+    const badgeEl = document.getElementById('newMembersBadge');
+    if (!listEl) return;
+
+    // 🔤 فیلتر بر اساس پیشوند ماه شمسی
+    const monthPrefix = reportMonth;  // "1405-07"
+
+    const newMembers = reportMembers.filter(m => {
+        const d = String(m.join_date || (m.created_at ? m.created_at.slice(0, 10) : '') || '');
+        if (!d) return false;
+        return d.startsWith(monthPrefix);
+    });
+
+    console.log(`🆕 اعضای جدید این ماه: ${newMembers.length}`);
+
+    if (badgeEl) badgeEl.textContent = newMembers.length;
+
+    if (newMembers.length === 0) {
+        listEl.innerHTML = '';
+        if (emptyEl) emptyEl.style.display = 'block';
+        return;
+    }
+
+    if (emptyEl) emptyEl.style.display = 'none';
+
+    listEl.innerHTML = newMembers.map(m => `
+        <div class="new-member-card">
+            <div class="new-avatar">${(m.full_name || '?').charAt(0)}</div>
+            <div class="new-info">
+                <div class="new-name">${escapeHtml(m.full_name || '—')}</div>
+                <div class="new-meta">
+                    <span>🎫 ${escapeHtml(m.member_code || '—')}</span>
+                    <span>📅 ${formatDate(m.join_date || m.created_at)}</span>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// ماه
+// ═══════════════════════════════════════════════════════
+function onReportMonthChange() {
+    const input = document.getElementById('reportMonth');
+    if (!input) return;
+    reportMonth = input.value;
+    loadReports();
+}
+
+function setReportMonthCurrent() {
+    reportMonth = getCurrentShamsiMonth();  // 🔤 شمسی
+    const input = document.getElementById('reportMonth');
+    if (input) input.value = reportMonth;
+    loadReports();
+}
+
+function getCurrentMonthISO() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;  // میلادی (برای fallback)
+}
+
+function getMonthEnd(yearMonth) {
+    const [year, month] = yearMonth.split('-').map(Number);
+    const lastDay = new Date(year, month, 0).getDate();
+    return `${yearMonth}-${String(lastDay).padStart(2, '0')}`;
+}
+
+// ═══════════════════════════════════════════════════════
+// Helper
+// ═══════════════════════════════════════════════════════
+function showRepLoading(show) {
+    const el = document.getElementById('reportsLoading');
+    if (el) el.style.display = show ? 'block' : 'none';
+}
+
+function formatMoney(amount) {
+    if (!amount && amount !== 0) return '0';
+    return Number(amount).toLocaleString('fa-IR');
+}
+
+function formatDate(iso) {
+    if (!iso) return '—';
+    try {
+        return new Date(iso).toLocaleDateString("fa-IR");
+    } catch { return '—'; }
+}
+
+function escapeHtml(s) {
+    if (!s) return '';
+    return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}

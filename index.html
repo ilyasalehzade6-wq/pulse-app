@@ -16,6 +16,37 @@
     <link rel="apple-touch-icon" href="icons/icon-192x192.png">
     <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-96x96.png">
     <link rel="icon" type="image/png" sizes="16x16" href="icons/icon-72x72.png">
+
+<style>
+.apk-download-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, #f1c40f, #e67e22);
+    color: #0f0f1a;
+    padding: 8px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.2s;
+    border: 1px solid rgba(241,196,15,0.3);
+}
+.apk-download-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 15px rgba(241,196,15,0.4);
+}
+@media (max-width: 600px) {
+    .apk-download-btn {
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+    .apk-download-btn span {
+        display: none;
+    }
+}
+</style>
+
 </head>
 <body class="dashboard-body">
 
@@ -32,6 +63,14 @@
         </div>
 
         <div class="topbar-actions">
+            <a href="downloads/PulseManager.apk" 
+               class="apk-download-btn" 
+               download
+               title="دانلود اپلیکیشن موبایل"
+               id="apkDownloadBtn">
+                📱 نصب اپ
+            </a>
+
             <button class="icon-btn" onclick="toggleTheme()" id="themeBtn" title="تغییر تم">
                 🌙
             </button>

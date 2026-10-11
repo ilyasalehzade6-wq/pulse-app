@@ -330,10 +330,10 @@ function switchPage(pageName) {
     } else if (pageName === 'settings') {
         if (settingsContent) settingsContent.style.display = 'block';
         initSettings();
-    } else if (pageName === 'announcements') {
-        const ac = document.getElementById('announcementsContent');
-        if (ac) ac.style.display = 'block';
-        loadAnnouncements();
+    } else if (pageName === 'chat') {
+        const cc = document.getElementById('chatContent');
+        if (cc) cc.style.display = 'block';
+        loadChatRooms();
     } else {
         // صفحات دیگه
         comingSoon(pageName);

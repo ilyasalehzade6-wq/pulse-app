@@ -94,8 +94,32 @@ async function loadDashboard() {
     renderGymInfo();
 
     // ۲. آمار
-    const { data: statsData, error: statsError } = await supabaseClient.rpc('get_dashboard_stats');
+    // 🔤 محاسبه ماه شمسی
+    const _now = new Date();
+    const _gy = _now.getFullYear();
+    const _gm = _now.getMonth() + 1;
+    const _gd = _now.getDate();
+    const _g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+    let _jy = (_gy <= 1600) ? 0 : 979;
+    let _gy2 = (_gy <= 1600) ? _gy - 621 : _gy - 1600;
+    const _gy2b = (_gm > 2) ? (_gy2 + 1) : _gy2;
+    let _days = (365 * _gy2) + Math.floor((_gy2b + 3) / 4) - Math.floor((_gy2b + 99) / 100) + Math.floor((_gy2b + 399) / 400) - 80 + _gd + _g_d_m[_gm - 1];
+    _jy += 33 * Math.floor(_days / 12053);
+    _days %= 12053;
+    _jy += 4 * Math.floor(_days / 1461);
+    _days %= 1461;
+    if (_days > 365) { _jy += Math.floor((_days - 1) / 365); _days = (_days - 1) % 365; }
+    let _jm;
+    if (_days < 186) { _jm = 1 + Math.floor(_days / 31); }
+    else { _jm = 7 + Math.floor((_days - 186) / 30); }
+    const _shamsiMonth = _jy + '-' + String(_jm).padStart(2, '0');
+    console.log('🔤 ماه شمسی:', _shamsiMonth);
 
+    const { data: statsData, error: statsError } = await supabaseClient.rpc('get_dashboard_stats', {
+        p_month: _shamsiMonth
+    });
+
+    console.log('📊 stats response:', statsData);
     if (!statsError && statsData) {
         stats = statsData;
         renderStats();

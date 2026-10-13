@@ -1,7 +1,7 @@
 /**
  * 🛠️ Service Worker — پالس مدیریت
  */
-const CACHE_NAME = 'pulse-v1';
+const CACHE_NAME = 'pulse-cache-20261013_194323';
 const STATIC_ASSETS = [
     './',
     './index.html',

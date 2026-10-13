@@ -162,8 +162,8 @@ function updateThemeButtons() {
 // لینک‌ها
 // ═══════════════════════════════════════════════════════
 function downloadDesktop() {
-    // TODO: لینک واقعی به فایل exe
-    window.open('https://github.com/ilyasalehzade6-wq/pulse-management/releases/latest', '_blank');
+    const DOWNLOAD_URL = "https://github.com/ilyasalehzade6-wq/pulse-app/releases/download/v3.3.0/PulseManager-v3.3.0.zip";
+    window.open(DOWNLOAD_URL, '_blank');
 }
 
 function openPortal() {

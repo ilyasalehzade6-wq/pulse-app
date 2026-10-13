@@ -230,7 +230,7 @@ function toggleSidebar() {
 // Actions
 // ============================================================
 function downloadDesktop() {
-    const DOWNLOAD_URL = "https://github.com/ilyasalehzade6-wq/pulse-app/releases/download/v3.3.0/PulseManager-v3.3.0.zip";
+    const DOWNLOAD_URL = "https://github.com/ilyasalehzade6-wq/pulse-app/releases/download/v3.3.0/PulseManager-Setup-v3.3.0.exe";
     showToast('📥 در حال دانلود نسخه دسکتاپ...', 'info');
     window.open(DOWNLOAD_URL, '_blank');
 }

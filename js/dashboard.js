@@ -190,8 +190,12 @@ function switchPage(pageName) {
     if (pageName === 'chat' && typeof loadChatRooms === 'function') loadChatRooms();
 
     if (window.innerWidth < 768) {
-        const sb = document.getElementById('sidebar');
-        if (sb) sb.classList.remove('open');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        if (sidebar && !sidebar.classList.contains('translate-x-full')) {
+            sidebar.classList.add('translate-x-full');
+            if (overlay) overlay.classList.add('hidden');
+        }
     }
     if (window.lucide) lucide.createIcons();
 }
@@ -391,4 +395,18 @@ function logout() {
     supabaseClient.auth.signOut().then(() => {
         window.location.href = 'login.html';
     });
+}
+
+
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    
+    if (sidebar.classList.contains('translate-x-full')) {
+        sidebar.classList.remove('translate-x-full');
+        overlay.classList.remove('hidden');
+    } else {
+        sidebar.classList.add('translate-x-full');
+        overlay.classList.add('hidden');
+    }
 }

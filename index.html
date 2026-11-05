@@ -137,16 +137,27 @@
     </div>
 
 
+    
+    <!-- Overlay for mobile -->
+    <div id="sidebarOverlay" class="fixed inset-0 bg-black/60 z-40 hidden md:hidden backdrop-blur-sm transition-opacity" onclick="toggleSidebar()"></div>
+
     <!-- Sidebar -->
-    <aside class="w-64 bg-darkSidebar border-l border-darkBorder flex flex-col p-4 z-20 shrink-0 h-full">
-        <div class="flex items-center gap-3 px-2 mb-8 mt-2">
-            <div class="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
-                <i data-lucide="activity" class="w-5 h-5 text-amber-500 stroke-[1.5]"></i>
+    <aside id="sidebar" class="fixed inset-y-0 right-0 z-50 w-64 bg-[#111111] border-l border-zinc-800 flex flex-col p-4 transform translate-x-full md:relative md:translate-x-0 transition-transform duration-300 md:flex shrink-0 h-full">
+        <div class="flex items-center justify-between px-2 mb-8 mt-2">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
+                    <i data-lucide="activity" class="w-5 h-5 text-amber-500 stroke-[1.5]"></i>
+                </div>
+                <span class="font-bold text-lg tracking-tight">پالس مدیریت</span>
             </div>
-            <span class="font-bold text-lg tracking-tight">پالس مدیریت</span>
+            <!-- Close button for mobile -->
+            <button onclick="toggleSidebar()" class="md:hidden p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
         </div>
         
-        <nav class="flex-1 space-y-1.5">
+        <nav class="flex-1 space-y-1.5 overflow-y-auto custom-scrollbar">
+
             <button onclick="switchPage('dashboard')" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded-xl bg-amber-500/10 text-amber-500 border-r-2 border-amber-500 font-bold transition-colors" data-page="dashboard">
                 <i data-lucide="layout-dashboard" class="w-5 h-5 stroke-[2]"></i> داشبورد
             </button>
@@ -186,27 +197,34 @@
         
         <!-- Top Bar -->
         
-        <header class="w-full h-16 border-b border-zinc-800 flex justify-between items-center px-6 shrink-0 bg-[#111111] z-50">
-            <div class="flex items-center gap-3">
+        
+        <header class="w-full h-16 border-b border-zinc-800 flex justify-between items-center px-4 md:px-6 shrink-0 bg-[#111111] z-30">
+            <div class="flex items-center gap-2 md:gap-3">
+                <!-- Mobile Menu Toggle -->
+                <button onclick="toggleSidebar()" class="md:hidden p-2 text-zinc-400 hover:text-zinc-100 rounded-lg hover:bg-zinc-800 transition-colors">
+                    <i data-lucide="menu" class="w-6 h-6 stroke-[1.5]"></i>
+                </button>
+
                 <i data-lucide="sun" class="w-5 h-5 text-amber-500 stroke-[1.5] hidden dark:block"></i>
                 <i data-lucide="sun" class="w-5 h-5 text-amber-600 stroke-[1.5] block dark:hidden"></i>
                 <div>
-                    <h1 id="greeting" class="text-lg font-bold tracking-tight text-white">...</h1>
-                    <p class="text-zinc-400 text-[11px] mt-0.5" id="clubInfo">...</p>
+                    <h1 id="greeting" class="text-sm md:text-lg font-bold tracking-tight text-white">...</h1>
+                    <p class="text-zinc-400 text-[10px] md:text-[11px] mt-0.5" id="clubInfo">...</p>
                 </div>
             </div>
-            <div class="flex items-center gap-3">
-                <!-- Theme Toggle Button -->
+            <div class="flex items-center gap-2 md:gap-3">
                 <button onclick="toggleTheme()" class="p-2 rounded-lg bg-[#09090b] border border-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors">
                     <i data-lucide="moon" class="w-4 h-4 hidden dark:block stroke-[1.5]"></i>
                     <i data-lucide="sun" class="w-4 h-4 block dark:hidden stroke-[1.5]"></i>
                 </button>
-                <button onclick="switchPage('attendance')" class="bg-amber-500 hover:bg-amber-400 text-zinc-950 px-4 py-2 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm shadow-amber-500/20">
+                <button onclick="switchPage('attendance')" class="bg-amber-500 hover:bg-amber-400 text-zinc-950 px-3 md:px-4 py-2 rounded-lg font-bold text-[11px] md:text-xs flex items-center gap-1.5 transition-all shadow-sm shadow-amber-500/20">
                     <i data-lucide="check" class="w-3.5 h-3.5 stroke-[3]"></i>
-                    ثبت حضور
+                    <span class="hidden md:inline">ثبت حضور</span>
+                    <span class="md:hidden">حضور</span>
                 </button>
             </div>
         </header>
+
 
 
         <!-- Content Area -->
@@ -225,7 +243,7 @@
                                 </span>
                                 <span class="text-zinc-400 text-sm font-medium">اشتراک پالس</span>
                             </div>
-                            <h2 class="text-2xl font-semibold tracking-tight text-zinc-200 mb-6 whitespace-nowrap overflow-hidden text-ellipsis">
+                            <h2 class="text-xl md:text-2xl font-semibold tracking-tight text-zinc-200 mb-4 md:mb-6 md:whitespace-nowrap overflow-hidden text-ellipsis">
                                 شما <span id="daysLeftPercent" class="text-4xl font-bold text-amber-500 mx-1">۳۴۴</span> روز <span class="text-amber-500">طلایی</span> در پیش دارید
                             </h2>
                             <div class="w-full max-w-xl ml-auto">
@@ -238,14 +256,14 @@
                                 <div class="text-left mt-2 text-xs text-zinc-500 font-mono" id="subscriptionEndText">...</div>
                             </div>
                         </div>
-                        <div class="relative z-10 shrink-0 w-full md:w-auto mt-4 md:mt-0">
+                        <div class="relative z-10 shrink-0 w-full md:w-auto mt-4 md:mt-0 flex justify-end">
                             <button onclick="contactSupport()" class="w-full md:w-auto justify-center bg-transparent hover:bg-amber-500/10 text-amber-500 border border-amber-500/30 px-6 py-2.5 rounded-lg font-bold text-sm transition-all flex items-center gap-2">
                                 <i data-lucide="crown" class="w-4 h-4"></i> تمدید اشتراک
                             </button>
                         </div>
                     </div>
                     <!-- Stats -->
-                    <div class="w-full grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                         <div class="bg-darkCard border border-darkBorder rounded-xl p-5 shadow-sm flex items-center justify-between">
                             <div><p class="text-sm text-zinc-400 font-medium mb-1 whitespace-nowrap">کل اعضا</p><h3 id="totalMembers" class="text-2xl font-bold font-mono">0</h3></div>
                             <div class="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0"><i data-lucide="users" class="w-5 h-5"></i></div>
@@ -540,7 +558,7 @@
     <script src="js/license-utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/config.js"></script>
-    <script src="js/dashboard.js?v=1793791194531"></script>
+    <script src="js/dashboard.js?v=1793887715511"></script>
     <script src="js/members.js?v=1793789983759"></script>
     <script src="js/attendance.js"></script>
     <script src="js/finance.js"></script>

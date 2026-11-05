@@ -141,7 +141,7 @@ async function handleSignup(event) {
         }
 
         // ۴. موفقیت
-        showToast('🎉 حساب شما ساخته شد!', 'success');
+        showToast('حساب شما ساخته شد!', 'success');
         btnText.textContent = '✅ خوش آمدید!';
 
         // ۵. هدایت به داشبورد
@@ -229,7 +229,7 @@ async function handleLogin(event) {
             return showError('خطا در ورود: ' + authError.message);
         }
 
-        showToast('✅ خوش آمدید!', 'success');
+        showToast('خوش آمدید!', 'success');
         btnText.textContent = '✅ در حال انتقال...';
 
         setTimeout(() => {
@@ -252,7 +252,7 @@ function showError(message) {
     const errorMsg = document.getElementById('errorMsg');
     if (!errorMsg) return;
 
-    errorMsg.textContent = '⚠️ ' + message;
+    errorMsg.textContent = message;
     errorMsg.classList.add('show');
 
     const card = document.querySelector('.auth-card');

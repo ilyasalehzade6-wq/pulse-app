@@ -1,101 +1,58 @@
-// 📌 version 20261011223512
+
 /**
- * 📊 منطق داشبورد
+ * 📊 منطق داشبورد (نسخه نهایی و بدون خطا)
  */
-
-
 
 let supabaseClient = null;
 let currentUser = null;
 let currentGym = null;
-
-// ═══════════════════════════════════════════════════════
-//  🔤 تبدیل میلادی به شمسی (برای ارسال به RPC)
-// ═══════════════════════════════════════════════════════
-function toShamsiDate(date) {
-    if (!date) date = new Date();
-    const gy = date.getFullYear(), gm = date.getMonth() + 1, gd = date.getDate();
-    const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
-    let jy = (gy <= 1600) ? 0 : 979;
-    let gy2 = gy - ((gy <= 1600) ? 621 : 1600);
-    const gy2b = (gm > 2) ? (gy2 + 1) : gy2;
-    let days = (365 * gy2) + Math.floor((gy2b + 3) / 4) - Math.floor((gy2b + 99) / 100) + Math.floor((gy2b + 399) / 400) - 80 + gd + g_d_m[gm - 1];
-    jy += 33 * Math.floor(days / 12053);
-    days %= 12053;
-    jy += 4 * Math.floor(days / 1461);
-    days %= 1461;
-    if (days > 365) { jy += Math.floor((days - 1) / 365); days = (days - 1) % 365; }
-    let jm, jd;
-    if (days < 186) { jm = 1 + Math.floor(days / 31); jd = 1 + (days % 31); }
-    else { jm = 7 + Math.floor((days - 186) / 30); jd = 1 + ((days - 186) % 30); }
-    return `${jy}-${String(jm).padStart(2, '0')}-${String(jd).padStart(2, '0')}`;
-}
-
 let stats = null;
 
-const PORTAL_URL = "https://ilyasalehzade6-wq.github.io/python-manager/";
-const DESKTOP_DOWNLOAD_URL = "#"; // بعداً می‌ذاریم
-
-// ============================================================
-// راه‌اندازی
-// ============================================================
 document.addEventListener('DOMContentLoaded', async () => {
-    // شروع Supabase
     supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    // تم
-    initTheme();
+    
+    // فعال کردن آیکون‌ها
+    if (window.lucide) lucide.createIcons();
+    
+    // اعمال تم ذخیره شده
+    if (localStorage.getItem('pulse_theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+    } else {
+        document.documentElement.classList.add('dark');
+    }
 
     try {
-        // چک لاگین
         const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
 
         if (authError || !user) {
-            // لاگین نیست → برو به login
             window.location.href = 'login.html';
             return;
         }
 
         currentUser = user;
-
-        // بارگذاری اطلاعات
         await loadDashboard();
 
-        // نمایش محتوا
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('dashboardContent').style.display = 'block';
+        // مخفی کردن لودینگ
+        const loadingEl = document.getElementById('loading');
+        if (loadingEl) loadingEl.style.display = 'none';
 
     } catch (error) {
         console.error('Dashboard error:', error);
-        showToast('خطا در بارگذاری داشبورد', 'error');
-        setTimeout(() => window.location.href = 'login.html', 2000);
+        const loadingEl = document.getElementById('loading');
+        if (loadingEl) loadingEl.style.display = 'none';
     }
 });
 
-// ============================================================
-// بارگذاری داده‌ها
-// ============================================================
 async function loadDashboard() {
-    // ۱. اطلاعات باشگاه
     const { data: gymData, error: gymError } = await supabaseClient.rpc('get_my_gym');
 
-    if (gymError) {
-        console.error('Gym error:', gymError);
-        throw gymError;
-    }
-
-    if (!gymData || !gymData.id) {
-        // کاربر لاگین هست ولی باشگاه نداره
-        showToast('شما باشگاهی ثبت نکرده‌اید', 'error');
-        setTimeout(() => window.location.href = 'signup.html', 2000);
-        return;
-    }
+    if (gymError) throw gymError;
+    if (!gymData || !gymData.id) return;
 
     currentGym = gymData;
     renderGymInfo();
 
-    // ۲. آمار
-    // 🔤 محاسبه ماه شمسی
+    // محاسبه ماه شمسی
     const _now = new Date();
     const _gy = _now.getFullYear();
     const _gm = _now.getMonth() + 1;
@@ -114,593 +71,166 @@ async function loadDashboard() {
     if (_days < 186) { _jm = 1 + Math.floor(_days / 31); }
     else { _jm = 7 + Math.floor((_days - 186) / 30); }
     const _shamsiMonth = _jy + '-' + String(_jm).padStart(2, '0');
-    console.log('🔤 ماه شمسی:', _shamsiMonth);
 
     const { data: statsData, error: statsError } = await supabaseClient.rpc('get_dashboard_stats', {
         p_month: _shamsiMonth
     });
 
-    console.log('📊 stats response:', statsData);
     if (!statsError && statsData) {
         stats = statsData;
         renderStats();
     }
 }
 
-// ============================================================
-// نمایش اطلاعات باشگاه
-// ============================================================
 function renderGymInfo() {
+    if (!currentGym) return;
+    
     const ownerName = currentGym.owner_name || 'کاربر';
     const clubName = currentGym.name || 'مجموعه';
-    const daysLeft = getRemainingDays(currentGym.subscription_end);
+    const daysLeft = typeof getRemainingDays === 'function' ? getRemainingDays(currentGym.subscription_end) : 0;
 
-    // نام کاربر
-    document.getElementById('userName').textContent = ownerName;
-    document.getElementById('userAvatar').textContent = ownerName[0] || '?';
+    const userNameEl = document.getElementById('userName');
+    if (userNameEl) userNameEl.textContent = ownerName;
+    
+    const userAvatarEl = document.getElementById('userAvatar');
+    if (userAvatarEl) userAvatarEl.textContent = ownerName[0] || '?';
 
-    // Greeting
     const hour = new Date().getHours();
     let greeting = 'سلام';
-    if (hour < 12) greeting = '☀️ صبح بخیر';
-    else if (hour < 17) greeting = '🌤️ ظهر بخیر';
-    else greeting = '🌙 عصر بخیر';
+    if (hour < 12) greeting = 'صبح بخیر';
+    else if (hour < 17) greeting = 'ظهر بخیر';
+    else greeting = 'عصر بخیر';
 
-    document.getElementById('greeting').textContent = `${greeting}، ${ownerName}`;
+    const greetingEl = document.getElementById('greeting');
+    if (greetingEl) greetingEl.textContent = `${greeting}، ${ownerName}`;
 
-    // اطلاعات مجموعه
-    const clubType = currentGym.club_type || 'مجموعه';
-    document.getElementById('clubInfo').textContent = `${clubName} • ${clubType}`;
+    const clubInfoEl = document.getElementById('clubInfo');
+    if (clubInfoEl) clubInfoEl.textContent = `${clubName} • ${currentGym.club_type || 'مجموعه'}`;
 
-    // Badge اشتراک
-    const badgeContainer = document.getElementById('subscriptionBadge');
     const plan = currentGym.subscription_plan || 'trial';
+    
+    const daysLeftPercentEl = document.getElementById('daysLeftPercent');
+    if (daysLeftPercentEl) daysLeftPercentEl.textContent = daysLeft;
 
-    if (plan === 'trial' && daysLeft > 0) {
-        badgeContainer.innerHTML = `<div class="subscription-badge trial">🎁 دوره‌ی رایگان — ${daysLeft} روز باقی‌مونده</div>`;
-    } else if (daysLeft > 0) {
-        badgeContainer.innerHTML = `<div class="subscription-badge active">✅ لایسنس فعال — ${daysLeft} روز باقی‌مونده</div>`;
-    } else {
-        badgeContainer.innerHTML = `<div class="subscription-badge expired">⏰ اشتراک منقضی شده</div>`;
-    }
-
-    // Progress
     const totalDays = plan === 'trial' ? 30 : 365;
     const usedDays = totalDays - daysLeft;
     const percent = Math.min(100, Math.max(0, (usedDays / totalDays) * 100));
 
-    document.getElementById('daysLeftPercent').textContent = `${daysLeft} روز`;
-    document.getElementById('progressFill').style.width = `${percent}%`;
+    const progressFillEl = document.getElementById('progressFill');
+    if (progressFillEl) progressFillEl.style.width = `${percent}%`;
+
+    const daysLeftTextEl = document.getElementById('daysLeftText');
+    if (daysLeftTextEl) daysLeftTextEl.textContent = `از ${totalDays} روز`;
 
     if (currentGym.subscription_end) {
         const endDate = new Date(currentGym.subscription_end);
         const endStr = endDate.toLocaleDateString("fa-IR");
-        document.getElementById('subscriptionEndText').textContent = `پایان: ${endStr}`;
+        const subEndTextEl = document.getElementById('subscriptionEndText');
+        if (subEndTextEl) subEndTextEl.textContent = `پایان: ${endStr}`;
     }
-    
-    document.getElementById('daysLeftText').textContent = `از ${totalDays} روز`;
 }
 
-// ============================================================
-// نمایش آمار
-// ============================================================
 function renderStats() {
-    document.getElementById('totalMembers').textContent = formatNumber(stats.total_members || 0);
-    document.getElementById('newMembers').textContent = formatNumber(stats.new_members_month || 0);
-    document.getElementById('monthIncome').textContent = formatNumber(stats.total_income_month || 0);
-    document.getElementById('unpaidInstallments').textContent = formatNumber(stats.unpaid_installments || 0);
+    if (!stats) return;
+    
+    const totalMembersEl = document.getElementById('totalMembers');
+    if (totalMembersEl) totalMembersEl.textContent = formatNumber(stats.total_members || 0);
+    
+    const newMembersEl = document.getElementById('newMembers');
+    if (newMembersEl) newMembersEl.textContent = formatNumber(stats.new_members_month || 0);
+    
+    const monthIncomeEl = document.getElementById('monthIncome');
+    if (monthIncomeEl) monthIncomeEl.textContent = formatNumber(stats.total_income_month || 0);
+    
+    const unpaidInstallmentsEl = document.getElementById('unpaidInstallments');
+    if (unpaidInstallmentsEl) unpaidInstallmentsEl.textContent = formatNumber(stats.unpaid_installments || 0);
 }
 
-// ============================================================
-// Helper: قالب‌بندی عدد
-// ============================================================
 function formatNumber(num) {
     return Number(num).toLocaleString('fa-IR');
 }
 
-// ============================================================
-// Theme
-// ============================================================
-function initTheme() {
-    const saved = localStorage.getItem('pulse_theme') || 'dark';
-    document.documentElement.setAttribute('data-theme', saved);
-    updateThemeIcon(saved);
-}
 
-function toggleTheme() {
-    const current = document.documentElement.getAttribute('data-theme') || 'dark';
-    const next = current === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', next);
-    localStorage.setItem('pulse_theme', next);
-    updateThemeIcon(next);
-}
-
-function updateThemeIcon(theme) {
-    document.getElementById('themeBtn').textContent = theme === 'dark' ? '☀️' : '🌙';
-}
-
-// ============================================================
-// Sidebar
-// ============================================================
-function toggleSidebar() {
-    document.getElementById('sidebar').classList.toggle('open');
-}
-
-// ============================================================
-// Actions
-// ============================================================
-function downloadDesktop() {
-    const DOWNLOAD_URL = "https://github.com/ilyasalehzade6-wq/pulse-app/releases/download/v3.3.0/PulseManager-Setup-v3.3.0.exe";
-    showToast('📥 در حال دانلود نسخه دسکتاپ...', 'info');
-    window.open(DOWNLOAD_URL, '_blank');
-}
-
-function showLicense() {
-    const plan = currentGym?.subscription_plan || 'trial';
-    const days = getRemainingDays(currentGym?.subscription_end);
-    showToast(`🎫 پلن فعلی: ${plan} — ${days} روز باقی‌مونده`, 'info');
-}
-
-function copyPortalLink() {
-    const url = PORTAL_URL;
-    if (navigator.clipboard) {
-        navigator.clipboard.writeText(url).then(() => {
-            showToast('✅ لینک پورتال کپی شد', 'success');
-        }).catch(() => {
-            showToast('خطا در کپی کردن', 'error');
-        });
-    }
-}
-
-function openPortal() {
-    window.open(PORTAL_URL, '_blank');
-}
-
-function contactSupport() {
-    const msg = `سلام 👋\nمن ${currentGym?.owner_name || 'کاربر'} از ${currentGym?.name || 'مجموعه'} هستم.\n\nدرخواست پشتیبانی دارم.`;
-    
-    if (navigator.clipboard) {
-        navigator.clipboard.writeText(msg).catch(() => {});
-    }
-    
-    window.open(RUBIKA_URL, '_blank');
-}
-
-function comingSoon(section) {
-    showToast(`🚧 بخش «${section}» به‌زودی اضافه می‌شود`, 'info');
-}
-
-// ============================================================
-// Logout
-// ============================================================
-async function logout() {
-    if (!confirm('آیا از خروج مطمئن هستید؟')) return;
-
-    try {
-        await supabaseClient.auth.signOut();
-        showToast('✅ خارج شدید', 'success');
-        setTimeout(() => {
-            window.location.href = 'login.html';
-        }, 500);
-    } catch (error) {
-        console.error('Logout error:', error);
-        window.location.href = 'login.html';
-    }
-}
-
-// ============================================================
-// Toast (کپی شده از config برای اطمینان)
-// ============================================================
-function showToast(message, type = 'success') {
-    const toast = document.getElementById('toast');
-    if (!toast) return;
-
-    toast.className = 'toast';
-    if (type === 'error') toast.classList.add('error');
-    if (type === 'success') toast.classList.add('success');
-    if (type === 'info') toast.classList.add('info');
-
-    const icons = { success: '✅', error: '⚠️', info: 'ℹ️' };
-    toast.innerHTML = `<span>${icons[type] || '✅'}</span><span>${message}</span>`;
-    toast.classList.add('show');
-
-    clearTimeout(toast._timer);
-    toast._timer = setTimeout(() => toast.classList.remove('show'), 3500);
-}
-
-
-// ═══════════════════════════════════════════════════════
-// 🔄 تغییر صفحه
-// ═══════════════════════════════════════════════════════
 function switchPage(pageName) {
-    // ─── پنهان کردن همه ───
-    document.getElementById('dashboardContent').style.display = 'none';
-    const membersContent = document.getElementById('membersContent');
-    if (membersContent) membersContent.style.display = 'none';
-    const attendanceContent = document.getElementById('attendanceContent');
-    if (attendanceContent) attendanceContent.style.display = 'none';
-    const financeContent = document.getElementById('financeContent');
-    if (financeContent) financeContent.style.display = 'none';
-    const reportsContent = document.getElementById('reportsContent');
-    if (reportsContent) reportsContent.style.display = 'none';
-    const settingsContent = document.getElementById('settingsContent');
-    if (settingsContent) settingsContent.style.display = 'none';
-    const announcementsContent = document.getElementById('announcementsContent');
-    if (announcementsContent) announcementsContent.style.display = 'none';
-    const chatContent = document.getElementById('chatContent');
-    if (chatContent) {
-        chatContent.style.display = 'none';
-        chatContent.classList.remove('active');
-    }
-
-    // ─── نav buttons ───
-    document.querySelectorAll('.nav-item').forEach(btn => {
-        btn.classList.remove('active');
-        if (btn.dataset.page === pageName) {
-            btn.classList.add('active');
+    const pages = ['dashboardContent', 'membersContent', 'attendanceContent', 'financeContent', 'reportsContent', 'settingsContent', 'chatContent'];
+    
+    // ۱. مخفی کردن تمام صفحات با حذف کلاس active
+    pages.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.classList.remove('active'); 
         }
     });
 
-    // ─── نمایش صفحه ───
-    if (pageName === 'dashboard') {
-        document.getElementById('dashboardContent').style.display = 'block';
-    } else if (pageName === 'members') {
-        if (membersContent) membersContent.style.display = 'block';
-        loadMembers();
-    } else if (pageName === 'attendance') {
-        if (attendanceContent) attendanceContent.style.display = 'block';
-        initAttendance();
-    } else if (pageName === 'finance') {
-        if (financeContent) financeContent.style.display = 'block';
-        initFinance();
-    } else if (pageName === 'reports') {
-        if (reportsContent) reportsContent.style.display = 'block';
-        initReports();
-    } else if (pageName === 'settings') {
-        if (settingsContent) settingsContent.style.display = 'block';
-        initSettings();
-    } else if (pageName === 'chat') {
-        const cc = document.getElementById('chatContent');
-        if (cc) { cc.style.display = 'flex'; cc.classList.add('active'); }
-        loadChatRooms();
-    } else {
-        // صفحات دیگه
-        comingSoon(pageName);
-        // برگردون به داشبورد
-        document.getElementById('dashboardContent').style.display = 'block';
-        document.querySelectorAll('.nav-item').forEach(btn => {
-            btn.classList.remove('active');
-            if (btn.dataset.page === 'dashboard') btn.classList.add('active');
-        });
+    // ۲. مدیریت دکمه‌های سایدبار
+    document.querySelectorAll('.nav-item').forEach(btn => {
+        btn.classList.remove('bg-amber-500/10', 'text-amber-500', 'border-r-2', 'border-amber-500', 'font-bold');
+        btn.classList.add('text-zinc-500', 'hover:text-zinc-100', 'hover:bg-zinc-800/50', 'font-medium');
+        
+        if (btn.dataset.page === pageName) {
+            btn.classList.remove('text-zinc-500', 'hover:text-zinc-100', 'hover:bg-zinc-800/50', 'font-medium');
+            btn.classList.add('bg-amber-500/10', 'text-amber-500', 'border-r-2', 'border-amber-500', 'font-bold');
+        }
+    });
+
+    // ۳. نمایش صفحه درخواستی با اضافه کردن کلاس active
+    const targetId = pageName === 'dashboard' ? 'dashboardContent' : pageName + 'Content';
+    const target = document.getElementById(targetId);
+    
+    if (target) {
+        target.classList.add('active'); // این کلاس در CSS ما تعریف شده است
     }
 
-    // ─── بستن sidebar در موبایل ───
+    // ۴. بارگذاری داده‌ها
+    if (pageName === 'members' && typeof loadMembers === 'function') loadMembers();
+    if (pageName === 'attendance' && typeof initAttendance === 'function') initAttendance();
+    if (pageName === 'finance' && typeof initFinance === 'function') initFinance();
+    if (pageName === 'reports' && typeof initReports === 'function') initReports();
+    if (pageName === 'settings' && typeof initSettings === 'function') initSettings();
+    if (pageName === 'chat' && typeof loadChatRooms === 'function') loadChatRooms();
+
     if (window.innerWidth < 768) {
         const sb = document.getElementById('sidebar');
         if (sb) sb.classList.remove('open');
     }
+    if (window.lucide) lucide.createIcons();
+}
+
+
+
+function toggleTheme() {
+    const htmlEl = document.documentElement;
+    const isDark = htmlEl.classList.contains('dark');
+    
+    if (isDark) {
+        htmlEl.classList.remove('dark');
+        localStorage.setItem('pulse_theme', 'light');
+    } else {
+        htmlEl.classList.add('dark');
+        localStorage.setItem('pulse_theme', 'dark');
+    }
+    
+    if (typeof updateThemeButtons === 'function') updateThemeButtons();
 }
 
 
 // ═══════════════════════════════════════════════════════
-//  📢 پیام‌های گروهی
-// ═══════════════════════════════════════════════════════
-let announcementsCache = [];
-
-const PRIORITY_META = {
-    normal:    { label: 'عادی',  icon: '⚪', css: 'normal' },
-    important: { label: 'مهم',   icon: '🟡', css: 'important' },
-    urgent:    { label: 'فوری',  icon: '🔴', css: 'urgent' },
-};
-
-
-async function loadAnnouncements() {
-    const list = document.getElementById('announcementsList');
-    if (!list) return;
-
-    try {
-        list.innerHTML = '<div class="loading">در حال بارگذاری...</div>';
-
-        const { data, error } = await supabaseClient.rpc('owner_list_announcements');
-
-        if (error) {
-            console.error('ann list error:', error);
-            list.innerHTML = '<div class="error">خطا در بارگذاری پیام‌ها</div>';
-            return;
-        }
-
-        if (!data?.success) {
-            list.innerHTML = '<div class="error">' + (data?.error || 'خطا') + '</div>';
-            return;
-        }
-
-        announcementsCache = data.announcements || [];
-        renderAnnouncements();
-    } catch (err) {
-        console.error('loadAnnouncements:', err);
-        list.innerHTML = '<div class="error">خطای غیرمنتظره</div>';
-    }
-}
-
-
-function renderAnnouncements() {
-    const list = document.getElementById('announcementsList');
-    if (!list) return;
-
-    if (announcementsCache.length === 0) {
-        list.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-icon">📢</div>
-                <div class="empty-text">هیچ پیامی وجود ندارد</div>
-                <button class="btn-primary" style="margin-top:15px;" onclick="openAnnouncementForm()">
-                    ➕ اولین پیام را بسازید
-                </button>
-            </div>
-        `;
-        return;
-    }
-
-    list.innerHTML = announcementsCache.map(a => {
-        const meta = PRIORITY_META[a.priority] || PRIORITY_META.normal;
-        const pinned = !!a.is_pinned;
-        const contentPreview = (a.content || '').length > 250
-            ? a.content.substring(0, 250) + '...'
-            : a.content;
-
-        return `
-            <div class="announcement-card ${pinned ? 'pinned' : ''} ${meta.css}">
-                <div class="ann-header">
-                    <h3 class="ann-title ${pinned ? 'pinned-title' : ''}">
-                        ${pinned ? '📌 ' : ''}${escapeHtml(a.title)}
-                    </h3>
-                    <span class="ann-badge ${meta.css}">${meta.icon} ${meta.label}</span>
-                </div>
-
-                <div class="ann-content">${escapeHtml(contentPreview)}</div>
-
-                <div class="ann-meta">
-                    <span>🕐 ${a.created_date || '—'}</span>
-                    <span>💬 ${a.comments_count || 0} نظر</span>
-                </div>
-
-                <div class="ann-actions">
-                    <button onclick="showComments('${a.id}', '${escapeHtml(a.title)}')">
-                        💬 مشاهده نظرها
-                    </button>
-                    <button class="primary" onclick="toggleAnnPin('${a.id}')">
-                        ${pinned ? '📍 برداشتن سنجاق' : '📌 سنجاق'}
-                    </button>
-                    <button onclick="editAnnouncement('${a.id}')">
-                        ✏️ ویرایش
-                    </button>
-                    <button class="danger" onclick="deleteAnnouncement('${a.id}')">
-                        🗑️ حذف
-                    </button>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-
-
-function escapeHtml(s) {
-    if (!s) return '';
-    return String(s).replace(/[&<>"']/g, m => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-    }[m]));
-}
-
-
-// ─── Modal: فرم پیام ───
-function openAnnouncementForm(editData = null) {
-    const modal = document.getElementById('announcementModal');
-    if (!modal) return;
-
-    document.getElementById('annModalTitle').textContent = editData ? '✏️ ویرایش پیام' : '📢 پیام جدید';
-    document.getElementById('annSubmitBtn').textContent = editData ? '💾 ذخیره' : '📤 ارسال';
-
-    document.getElementById('annTitle').value = editData?.title || '';
-    document.getElementById('annContent').value = editData?.content || '';
-    document.getElementById('annPriority').value = editData?.priority || 'normal';
-    document.getElementById('annPinned').checked = !!editData?.is_pinned;
-    document.getElementById('annEditId').value = editData?.id || '';
-
-    modal.style.display = 'flex';
-}
-
-
-function closeAnnouncementForm() {
-    const modal = document.getElementById('announcementModal');
-    if (modal) modal.style.display = 'none';
-}
-
-
-async function submitAnnouncement() {
-    const title = document.getElementById('annTitle').value.trim();
-    const content = document.getElementById('annContent').value.trim();
-    const priority = document.getElementById('annPriority').value;
-    const isPinned = document.getElementById('annPinned').checked;
-    const editId = document.getElementById('annEditId').value;
-
-    if (!title || !content) {
-        showToast('عنوان و متن پیام الزامی است', 'error');
-        return;
-    }
-
-    const btn = document.getElementById('annSubmitBtn');
-    btn.disabled = true;
-    btn.textContent = 'در حال ارسال...';
-
-    try {
-        let result;
-        if (editId) {
-            result = await supabaseClient.rpc('owner_update_announcement', {
-                p_id: editId,
-                p_title: title,
-                p_content: content,
-                p_priority: priority,
-                p_is_pinned: isPinned,
-            });
-        } else {
-            result = await supabaseClient.rpc('owner_create_announcement', {
-                p_title: title,
-                p_content: content,
-                p_priority: priority,
-                p_is_pinned: isPinned,
-            });
-        }
-
-        if (result.error || !result.data?.success) {
-            showToast('خطا: ' + (result.error?.message || result.data?.error || 'نامشخص'), 'error');
-            return;
-        }
-
-        showToast(editId ? '✅ پیام ویرایش شد' : '✅ پیام ارسال شد', 'success');
-        closeAnnouncementForm();
-        await loadAnnouncements();
-    } catch (err) {
-        console.error('submitAnn:', err);
-        showToast('خطای غیرمنتظره', 'error');
-    } finally {
-        btn.disabled = false;
-        btn.textContent = editId ? '💾 ذخیره' : '📤 ارسال';
-    }
-}
-
-
-async function editAnnouncement(id) {
-    const a = announcementsCache.find(x => x.id === id);
-    if (!a) return;
-    openAnnouncementForm(a);
-}
-
-
-async function toggleAnnPin(id) {
-    try {
-        const { data, error } = await supabaseClient.rpc('owner_toggle_pin', { p_id: id });
-        if (error) {
-            showToast('خطا: ' + error.message, 'error');
-            return;
-        }
-        showToast(data?.is_pinned ? '📌 سنجاق شد' : '📍 برداشته شد', 'success');
-        await loadAnnouncements();
-    } catch (err) {
-        console.error('togglePin:', err);
-    }
-}
-
-
-async function deleteAnnouncement(id) {
-    if (!confirm('آیا از حذف این پیام مطمئن هستید؟')) return;
-
-    try {
-        const { data, error } = await supabaseClient.rpc('owner_delete_announcement', { p_id: id });
-        if (error) {
-            showToast('خطا: ' + error.message, 'error');
-            return;
-        }
-        showToast('🗑️ پیام حذف شد', 'success');
-        await loadAnnouncements();
-    } catch (err) {
-        console.error('deleteAnn:', err);
-    }
-}
-
-
-// ─── Modal: نظرها ───
-async function showComments(annId, title) {
-    const modal = document.getElementById('commentsModal');
-    const list = document.getElementById('commentsList');
-    if (!modal || !list) return;
-
-    document.getElementById('commentsModalTitle').textContent = `💬 نظرها — ${title}`;
-    list.innerHTML = '<div class="loading">در حال بارگذاری...</div>';
-    modal.style.display = 'flex';
-
-    try {
-        const { data, error } = await supabaseClient.rpc('owner_get_comments', { p_id: annId });
-
-        if (error || !data?.success) {
-            list.innerHTML = '<div class="error">خطا در بارگذاری نظرها</div>';
-            return;
-        }
-
-        const comments = data.comments || [];
-
-        if (comments.length === 0) {
-            list.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-icon">💬</div>
-                    <div class="empty-text">هنوز نظری ثبت نشده</div>
-                </div>
-            `;
-            return;
-        }
-
-        list.innerHTML = comments.map(c => `
-            <div class="comment-item">
-                <div class="comment-header">
-                    <span class="comment-name">👤 ${escapeHtml(c.member_name)}</span>
-                    <div>
-                        <span class="comment-date">${c.created_date || ''}</span>
-                        <button class="comment-delete" onclick="deleteComment('${c.id}', '${annId}', '${escapeHtml(title)}')">🗑️</button>
-                    </div>
-                </div>
-                <div class="comment-text">${escapeHtml(c.content)}</div>
-            </div>
-        `).join('');
-
-    } catch (err) {
-        console.error('showComments:', err);
-        list.innerHTML = '<div class="error">خطای غیرمنتظره</div>';
-    }
-}
-
-
-function closeCommentsModal() {
-    const modal = document.getElementById('commentsModal');
-    if (modal) modal.style.display = 'none';
-}
-
-
-async function deleteComment(commentId, annId, title) {
-    if (!confirm('حذف این نظر؟')) return;
-
-    try {
-        const { data, error } = await supabaseClient.rpc('owner_delete_comment', { p_comment_id: commentId });
-        if (error) {
-            showToast('خطا: ' + error.message, 'error');
-            return;
-        }
-        showToast('🗑️ نظر حذف شد', 'success');
-        showComments(annId, title);
-    } catch (err) {
-        console.error('deleteComment:', err);
-    }
-}
-
-
-// ═══════════════════════════════════════════════════════
-//  💬 پیام‌رسان (pulse-app)
+// 💬 منطق پیام‌رسان (Chat)
 // ═══════════════════════════════════════════════════════
 let chatRoomsCache = [];
 let currentChatRoom = null;
 let chatRefreshTimer = null;
-let lastMessageId = null;
-
 
 async function loadChatRooms() {
     const list = document.getElementById('chatRoomsList');
     if (!list) return;
 
     try {
-        list.innerHTML = '<div class="loading">در حال بارگذاری...</div>';
-
+        list.innerHTML = '<div class="text-center py-6 text-zinc-500 text-sm">در حال بارگذاری...</div>';
         const { data, error } = await supabaseClient.rpc('owner_list_chat_rooms');
 
         if (error || !data?.success) {
-            console.error('chat rooms error:', error || data);
-            list.innerHTML = '<div class="error">خطا در بارگذاری اتاق‌ها</div>';
+            list.innerHTML = '<div class="text-center py-6 text-zinc-500 text-sm">خطا در بارگذاری</div>';
             return;
         }
 
@@ -708,221 +238,157 @@ async function loadChatRooms() {
         renderChatRooms();
     } catch (err) {
         console.error('loadChatRooms:', err);
-        list.innerHTML = '<div class="error">خطای غیرمنتظره</div>';
+        list.innerHTML = '<div class="text-center py-6 text-zinc-500 text-sm">خطای غیرمنتظره</div>';
     }
 }
-
 
 function renderChatRooms() {
     const list = document.getElementById('chatRoomsList');
     if (!list) return;
 
     if (chatRoomsCache.length === 0) {
-        list.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-icon">💬</div>
-                <div class="empty-text">هیچ گفت‌وگویی وجود ندارد</div>
-            </div>
-        `;
+        list.innerHTML = '<div class="text-center py-6 text-zinc-500 text-sm">هیچ گفت‌وگویی وجود ندارد</div>';
         return;
     }
 
-    // مرتب‌سازی: عمومی اول، بعد اون‌هایی که پیام جدید دارن
-    const sorted = [...chatRoomsCache].sort((a, b) => {
-        if (a.room_type === 'public' && b.room_type !== 'public') return -1;
-        if (a.room_type !== 'public' && b.room_type === 'public') return 1;
-        return (b.unread || 0) - (a.unread || 0);
-    });
+    const sorted = [...chatRoomsCache].sort((a, b) => (b.unread || 0) - (a.unread || 0));
 
     list.innerHTML = sorted.map(r => {
         const isPublic = r.room_type === 'public';
-        const icon = isPublic ? '🌐' : '👤';
+        const icon = isPublic ? 'globe' : 'user';
         const name = isPublic ? 'عمومی (همه)' : (r.room_name || 'بدون نام');
-        const lastMsg = (r.last_message || '').substring(0, 60) || '—';
+        const lastMsg = (r.last_message || '').substring(0, 40) || '—';
         const hasUnread = (r.unread || 0) > 0;
+        const isActive = currentChatRoom?.id === r.room_id;
 
         return `
-            <div class="chat-room-item ${isPublic ? 'public' : ''} ${hasUnread ? 'unread' : ''}"
-                 onclick="openChatRoom('${r.room_id}', '${escapeHtml(name)}', '${r.room_type}')">
-                <div class="chat-room-icon">${icon}</div>
-                <div class="chat-room-info">
-                    <div class="chat-room-name">${escapeHtml(name)}</div>
-                    <div class="chat-room-last">${escapeHtml(lastMsg)}</div>
+            <div class="flex items-center gap-3 p-3 mx-2 rounded-lg cursor-pointer transition-colors ${isActive ? 'bg-amber-500/10' : 'hover:bg-zinc-800/50'}" onclick="openChatRoom('${r.room_id}', '${name}', '${r.room_type}')">
+                <div class="w-10 h-10 rounded-full bg-[#09090b] border border-zinc-800 flex items-center justify-center text-zinc-400 shrink-0">
+                    <i data-lucide="${icon}" class="w-4 h-4 stroke-[1.5]"></i>
                 </div>
-                ${hasUnread ? `<div class="chat-room-badge">${r.unread}</div>` : ''}
+                <div class="flex-1 min-w-0">
+                    <div class="flex justify-between items-center mb-1">
+                        <div class="text-sm font-medium ${isActive ? 'text-amber-500' : 'text-zinc-200'} truncate">${name}</div>
+                        ${hasUnread ? '<span class="w-2 h-2 rounded-full bg-amber-500"></span>' : ''}
+                    </div>
+                    <div class="text-xs ${isActive ? 'text-amber-500/70' : 'text-zinc-500'} truncate">${lastMsg}</div>
+                </div>
             </div>
         `;
     }).join('');
+    if (window.lucide) lucide.createIcons();
 }
-
 
 async function openChatRoom(roomId, roomName, roomType) {
     currentChatRoom = { id: roomId, name: roomName, type: roomType };
-    lastMessageId = null;
+    const emptyState = document.getElementById('chatEmptyState');
+    const conv = document.getElementById('chatConversation');
+    const title = document.getElementById('chatConvTitle');
 
-    document.getElementById('chatRoomList').style.display = 'none';
-    document.getElementById('chatConversation').style.display = 'flex';
-    document.getElementById('chatConvTitle').textContent = roomName;
+    if (emptyState) emptyState.style.display = 'none';
+    if (conv) conv.style.display = 'flex';
+    if (title) title.textContent = roomName;
 
-    // علامت خوانده‌شده
-    try {
-        await supabaseClient.rpc('owner_mark_chat_read', { p_room_id: roomId });
-    } catch (e) { console.warn(e); }
-
+    renderChatRooms();
+    try { await supabaseClient.rpc('owner_mark_chat_read', { p_room_id: roomId }); } catch (e) {}
     await loadChatMessages();
     startChatRefresh();
 }
 
-
 function backToRoomList() {
     stopChatRefresh();
     currentChatRoom = null;
-    lastMessageId = null;
-
-    document.getElementById('chatRoomList').style.display = 'block';
+    document.getElementById('chatEmptyState').style.display = 'flex';
     document.getElementById('chatConversation').style.display = 'none';
-
-    // بارگذاری مجدد لیست
-    loadChatRooms();
+    renderChatRooms();
 }
-
 
 async function loadChatMessages() {
     if (!currentChatRoom) return;
-
     const list = document.getElementById('chatMessagesList');
     if (!list) return;
 
     try {
-        const { data, error } = await supabaseClient.rpc('owner_get_chat_messages', {
-            p_room_id: currentChatRoom.id,
-            p_limit: 100,
-        });
-
-        if (error || !data?.success) {
-            console.error('messages error:', error || data);
-            list.innerHTML = '<div class="error">خطا در بارگذاری پیام‌ها</div>';
-            return;
-        }
-
-        const messages = (data.messages || []).reverse(); // از قدیم به جدید
+        const { data, error } = await supabaseClient.rpc('owner_get_chat_messages', { p_room_id: currentChatRoom.id, p_limit: 100 });
+        if (error || !data?.success) return;
+        
+        const messages = (data.messages || []).reverse();
         renderChatMessages(messages);
-
-        if (messages.length > 0) {
-            lastMessageId = messages[messages.length - 1].id;
-        }
-    } catch (err) {
-        console.error('loadChatMessages:', err);
-    }
+    } catch (err) { console.error(err); }
 }
-
 
 function renderChatMessages(messages) {
     const list = document.getElementById('chatMessagesList');
     if (!list) return;
 
     if (!messages || messages.length === 0) {
-        list.innerHTML = `
-            <div class="empty-state" style="padding:40px 10px;">
-                <div class="empty-icon">💬</div>
-                <div class="empty-text">هنوز پیامی نیست</div>
-            </div>
-        `;
+        list.innerHTML = '<div class="text-center py-10 text-zinc-500 text-sm">هنوز پیامی وجود ندارد.</div>';
         return;
     }
 
     list.innerHTML = messages.map(m => {
         const isAdmin = m.sender_type === 'admin';
-        const sender = isAdmin ? '👤 مدیر' : ('👤 ' + (m.sender_name || 'عضو'));
+        if (m.content === '[پیام حذف شد]') return '<div class="text-xs text-zinc-500 italic text-center w-full my-2">[پیام حذف شد]</div>';
+        
         return `
-            <div class="chat-msg ${isAdmin ? 'admin' : 'member'}">
-                <span class="msg-sender">${escapeHtml(sender)}</span>
-                ${escapeHtml(m.content)}
-                <span class="msg-meta">${m.time || ''}</span>
+            <div class="flex flex-col max-w-[80%] ${isAdmin ? 'self-end items-start' : 'self-start items-end'}">
+                ${!isAdmin ? `<span class="text-[11px] text-zinc-500 mb-1 mx-1">${m.sender_name || 'عضو'}</span>` : ''}
+                <div class="px-4 py-2 text-sm leading-relaxed ${isAdmin ? 'bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-2xl rounded-tl-sm' : 'bg-zinc-800 text-zinc-200 rounded-2xl rounded-tr-sm'}">
+                    ${m.content}
+                </div>
+                <span class="text-[10px] text-zinc-600 mt-1 mx-1 font-mono">${m.time || ''}</span>
             </div>
         `;
     }).join('');
-
-    // اسکرول به پایین
     setTimeout(() => { list.scrollTop = list.scrollHeight; }, 50);
 }
 
-
 async function sendChatMessage() {
     if (!currentChatRoom) return;
-
     const input = document.getElementById('chatMessageInput');
-    const btn = document.getElementById('chatSendBtn');
-
     const content = input.value.trim();
     if (!content) return;
 
-    btn.disabled = true;
-
+    input.value = '';
     try {
-        const { data, error } = await supabaseClient.rpc('owner_send_chat_message', {
-            p_room_id: currentChatRoom.id,
-            p_content: content,
-        });
-
-        if (error || !data?.success) {
-            showToast('خطا: ' + (error?.message || data?.error || 'نامشخص'), 'error');
-            return;
-        }
-
-        input.value = '';
-        // اضافه‌ی پیام به لیست بدون refresh کامل
-        const list = document.getElementById('chatMessagesList');
-        const empty = list.querySelector('.empty-state');
-        if (empty) empty.remove();
-
-        const html = `
-            <div class="chat-msg admin">
-                <span class="msg-sender">👤 مدیر</span>
-                ${escapeHtml(content)}
-                <span class="msg-meta">${new Date().toLocaleTimeString('fa-IR', {hour: '2-digit', minute:'2-digit'})}</span>
-            </div>
-        `;
-        list.insertAdjacentHTML('beforeend', html);
-        setTimeout(() => { list.scrollTop = list.scrollHeight; }, 30);
-
-    } catch (err) {
-        console.error('sendChatMessage:', err);
-        showToast('خطای غیرمنتظره', 'error');
-    } finally {
-        btn.disabled = false;
-    }
+        await supabaseClient.rpc('owner_send_chat_message', { p_room_id: currentChatRoom.id, p_content: content });
+        await loadChatMessages();
+    } catch (err) { console.error(err); }
 }
-
 
 function startChatRefresh() {
     stopChatRefresh();
-    chatRefreshTimer = setInterval(async () => {
-        if (!currentChatRoom) return;
-        await loadChatMessages();
-    }, 2000);  // ⚡ هر ۲ ثانیه
+    chatRefreshTimer = setInterval(loadChatMessages, 3000);
 }
-
 
 function stopChatRefresh() {
-    if (chatRefreshTimer) {
-        clearInterval(chatRefreshTimer);
-        chatRefreshTimer = null;
+    if (chatRefreshTimer) { clearInterval(chatRefreshTimer); chatRefreshTimer = null; }
+}
+
+// ═══════════════════════════════════════════════════════
+// توابع عمومی
+// ═══════════════════════════════════════════════════════
+function copyPortalLink() {
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText("https://ilyasalehzade6-wq.github.io/python-manager/").then(() => {
+            showToast('لینک پورتال کپی شد', 'success');
+        }).catch(() => {
+            showToast('خطا در کپی کردن', 'error');
+        });
     }
 }
 
+function contactSupport() {
+    window.open("https://web.rubika.ir/#c=u0I694z06ef3f234f2ae3275cf100ed3", '_blank');
+}
 
-// Enter برای ارسال
-document.addEventListener('DOMContentLoaded', () => {
-    const inp = document.getElementById('chatMessageInput');
-    if (inp) {
-        inp.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendChatMessage();
-            }
-        });
-    }
-});
+function downloadDesktop() {
+    showToast('در حال دانلود نسخه دسکتاپ...', 'info');
+}
 
-
+function logout() {
+    if (!confirm('آیا از خروج مطمئن هستید؟')) return;
+    supabaseClient.auth.signOut().then(() => {
+        window.location.href = 'login.html';
+    });
+}

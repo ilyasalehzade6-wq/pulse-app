@@ -44,14 +44,15 @@ function showToast(message, type = 'success') {
     const toast = document.getElementById('toast');
     if (!toast) return;
 
-    toast.className = 'toast';
-    if (type === 'error') toast.classList.add('error');
-    if (type === 'success') toast.classList.add('success');
+    toast.className = 'fixed bottom-5 left-1/2 -translate-x-1/2 px-4 py-3 rounded-xl shadow-2xl transition-all duration-300 z-[2000] flex items-center gap-2 font-bold text-sm translate-y-20 opacity-0 bg-[#121215] border';
+    if (type === 'error') toast.className += ' border-red-500/30 text-red-500 shadow-red-500/10';
+    else if (type === 'success') toast.className += ' border-emerald-500/30 text-emerald-500 shadow-emerald-500/10';
+    else toast.className += ' border-amber-500/30 text-amber-500 shadow-amber-500/10';
 
-    const icons = { success: '✅', error: '⚠️', info: 'ℹ️' };
-    toast.innerHTML = `<span>${icons[type] || '✅'}</span><span>${message}</span>`;
-    toast.classList.add('show');
+    const icons = { success: '', error: '', info: '' };
+    toast.textContent = message;
+    toast.classList.remove('translate-y-20', 'opacity-0');
 
     clearTimeout(toast._timer);
-    toast._timer = setTimeout(() => toast.classList.remove('show'), 3500);
+    toast._timer = setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 3500);
 }

@@ -1,29 +1,20 @@
+
 /**
  * ⚙️ تنظیمات
  */
 
 let settingsData = null;
 
-// ═══════════════════════════════════════════════════════
-// راه‌اندازی
-// ═══════════════════════════════════════════════════════
 async function initSettings() {
     await loadSettings();
-    updateThemeButtons();
+    updateThemeButtons(); // این تابع حالا در پایین فایل تعریف شده است
 }
 
-// ═══════════════════════════════════════════════════════
-// بارگذاری اطلاعات
-// ═══════════════════════════════════════════════════════
 async function loadSettings() {
     try {
         const { data: { user } } = await supabaseClient.auth.getUser();
-        if (!user) {
-            showToast('❌ کاربر لاگین نکرده', 'error');
-            return;
-        }
+        if (!user) return;
 
-        // ─── gym info ───
         const { data: gym, error: gErr } = await supabaseClient
             .from('gyms')
             .select('id, name, username, phone, customer_code, owner_name, subscription_plan, subscription_end, is_blocked')
@@ -33,23 +24,16 @@ async function loadSettings() {
 
         if (gErr) throw gErr;
 
-        settingsData = {
-            gym: gym,
-            user: user
-        };
-
+        settingsData = { gym, user };
         renderSettings();
 
     } catch (e) {
         console.error('خطا در بارگذاری تنظیمات:', e);
-        showToast('❌ خطا: ' + e.message, 'error');
     }
 }
 
-// ═══════════════════════════════════════════════════════
-// رندر
-// ═══════════════════════════════════════════════════════
 function renderSettings() {
+    if (!settingsData) return;
     const { gym, user } = settingsData;
 
     const el = (id) => document.getElementById(id);
@@ -59,9 +43,7 @@ function renderSettings() {
     if (el('setCustomerCode')) el('setCustomerCode').textContent = gym.customer_code || '—';
     if (el('setUsername')) el('setUsername').textContent = gym.username || '—';
     if (el('setEmail')) el('setEmail').textContent = user.email || '—';
-    if (el('setVersion')) el('setVersion').textContent = (typeof APP_VERSION !== 'undefined' ? APP_VERSION : '1.0.0');
 
-    // ─── وضعیت اشتراک ───
     renderSubscriptionStatus(gym);
 }
 
@@ -69,123 +51,102 @@ function renderSubscriptionStatus(gym) {
     const box = document.getElementById('subscriptionBox');
     if (!box) return;
 
-    const now = new Date();
     const end = gym.subscription_end ? new Date(gym.subscription_end) : null;
-
-    let statusClass = 'active';
-    let statusText = '✅ فعال';
-    let statusColor = '#2ecc71';
+    let statusText = 'فعال';
+    let colorClass = 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20';
     let daysLeft = 0;
+    let icon = 'check-circle-2';
 
     if (gym.is_blocked) {
-        statusClass = 'blocked';
-        statusText = '🚫 مسدود';
-        statusColor = '#e74c3c';
+        statusText = 'مسدود'; colorClass = 'text-red-500 bg-red-500/10 border-red-500/20'; icon = 'x-circle';
     } else if (!end) {
-        statusClass = 'unknown';
-        statusText = '❓ نامشخص';
-        statusColor = '#95a5a6';
+        statusText = 'نامشخص'; colorClass = 'text-zinc-400 bg-zinc-800 border-zinc-700'; icon = 'help-circle';
     } else {
         daysLeft = getRemainingDays(end);
         if (daysLeft < 0) {
-            statusClass = 'expired';
-            statusText = '⏰ منقضی';
-            statusColor = '#e74c3c';
+            statusText = 'منقضی شده'; colorClass = 'text-red-500 bg-red-500/10 border-red-500/20'; icon = 'x-circle';
         } else if (daysLeft <= 7) {
-            statusClass = 'warning';
-            statusText = `⚠️ ${daysLeft} روز`;
-            statusColor = '#f39c12';
+            statusText = `${daysLeft} روز مانده`; colorClass = 'text-amber-500 bg-amber-500/10 border-amber-500/20'; icon = 'alert-triangle';
         } else {
-            statusClass = 'active';
-            statusText = `✅ فعال — ${daysLeft} روز`;
-            statusColor = '#2ecc71';
+            statusText = `فعال — ${daysLeft} روز`; colorClass = 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20'; icon = 'check-circle-2';
         }
     }
 
     box.innerHTML = `
-        <div class="sub-status" style="background: ${statusColor}20; border-color: ${statusColor};">
-            <span style="color: ${statusColor}; font-weight: 700; font-size: 16px;">
-                ${statusText}
-            </span>
+        <div class="flex items-center gap-2 mb-4 p-3 rounded-lg border ${colorClass}">
+            <i data-lucide="${icon}" class="w-5 h-5 stroke-[1.5]"></i>
+            <span class="font-bold text-sm">${statusText}</span>
         </div>
-        <div class="sub-info">
-            <div class="sub-row">
-                <span class="sub-label">📅 تاریخ انقضا:</span>
-                <span class="sub-value">${end ? end.toLocaleDateString('fa-IR') : '—'}</span>
+        <div class="flex flex-col divide-y divide-zinc-800 text-sm mb-6">
+            <div class="flex justify-between items-center py-3">
+                <span class="text-zinc-400 flex items-center gap-2"><i data-lucide="calendar" class="w-4 h-4 stroke-[1.5]"></i> تاریخ انقضا</span>
+                <span class="text-zinc-100 font-mono">${end ? end.toLocaleDateString('fa-IR') : '—'}</span>
             </div>
-            <div class="sub-row">
-                <span class="sub-label">💎 پلن:</span>
-                <span class="sub-value">${getPlanName(gym.subscription_plan)}</span>
+            <div class="flex justify-between items-center py-3">
+                <span class="text-zinc-400 flex items-center gap-2"><i data-lucide="diamond" class="w-4 h-4 stroke-[1.5]"></i> پلن فعلی</span>
+                <span class="text-zinc-100 font-medium">${getPlanName(gym.subscription_plan)}</span>
             </div>
         </div>
-        <button class="btn btn-gold btn-block" style="margin-top: 15px;" onclick="contactSupport()">
-            💬 تمدید / خرید لایسنس
+        <button class="w-full bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 shadow-sm" onclick="contactSupport()">
+            <i data-lucide="crown" class="w-4 h-4 stroke-[2]"></i> تمدید / خرید اشتراک
         </button>
     `;
+    
+    if (window.lucide) lucide.createIcons();
 }
 
 function getPlanName(planId) {
-    const plans = {
-        'trial': '🎁 دوره‌ی رایگان',
-        '1m': '📅 ۱ ماهه',
-        '3m': '📅 ۳ ماهه',
-        '6m': '📅 ۶ ماهه',
-        '1y': '📅 ۱ ساله'
-    };
+    const plans = { 'trial': 'دوره‌ی رایگان', '1m': '۱ ماهه', '3m': '۳ ماهه', '6m': '۶ ماهه', '1y': '۱ ساله' };
     return plans[planId] || (planId || '—');
 }
 
-// ═══════════════════════════════════════════════════════
-// تم
-// ═══════════════════════════════════════════════════════
+
 function setTheme(mode) {
-    document.documentElement.setAttribute('data-theme', mode);
-    localStorage.setItem('pulse_theme', mode);
-    updateThemeButtons();
-    showToast(`✅ تم ${mode === 'dark' ? 'تاریک' : 'روشن'} فعال شد`, 'success');
+    if (mode === 'dark') {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('pulse_theme', 'dark');
+    } else {
+        document.documentElement.classList.remove('dark');
+        localStorage.setItem('pulse_theme', 'light');
+    }
+    if (typeof updateThemeButtons === 'function') updateThemeButtons();
 }
+
 
 function updateThemeButtons() {
-    const current = document.documentElement.getAttribute('data-theme') || 'dark';
+    const isDark = document.documentElement.classList.contains('dark');
     const darkBtn = document.getElementById('themeDarkBtn');
     const lightBtn = document.getElementById('themeLightBtn');
-
-    if (darkBtn) {
-        darkBtn.classList.toggle('active', current === 'dark');
-    }
-    if (lightBtn) {
-        lightBtn.classList.toggle('active', current === 'light');
+    
+    if (darkBtn && lightBtn) {
+        const activeClass = 'bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700';
+        const inactiveClass = 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200';
+        
+        darkBtn.className = `flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${isDark ? activeClass : inactiveClass}`;
+        lightBtn.className = `flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${!isDark ? activeClass : inactiveClass}`;
     }
 }
 
-// ═══════════════════════════════════════════════════════
-// لینک‌ها
-// ═══════════════════════════════════════════════════════
 function downloadDesktop() {
-    const DOWNLOAD_URL = "https://github.com/ilyasalehzade6-wq/pulse-app/releases/download/v3.3.0/PulseManager-Setup-v3.3.0.exe";
-    window.open(DOWNLOAD_URL, '_blank');
+    window.open("https://github.com/ilyasalehzade6-wq/pulse-app/releases/download/v3.3.0/PulseManager-Setup-v3.3.0.exe", '_blank');
 }
 
 function openPortal() {
-    window.open('https://ilyasalehzade6-wq.github.io/python-manager/', '_blank');
+    window.open("https://ilyasalehzade6-wq.github.io/python-manager/", '_blank');
 }
 
 function copyPortalLink() {
-    const link = 'https://ilyasalehzade6-wq.github.io/python-manager/';
-    navigator.clipboard.writeText(link).then(() => {
-        showToast('✅ لینک پورتال کپی شد', 'success');
-    }).catch(() => {
-        showToast('❌ خطا در کپی', 'error');
-    });
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText("https://ilyasalehzade6-wq.github.io/python-manager/").then(() => {
+            showToast('لینک پورتال کپی شد', 'success');
+        }).catch(() => {
+            showToast('خطا در کپی', 'error');
+        });
+    }
 }
 
 function contactSupport() {
-    const msg = 'سلام 👋\nدرباره‌ی پالس مدیریت سوال دارم.';
-    navigator.clipboard.writeText(msg).catch(() => {});
-
-    // TODO: لینک روبیکا
-    const rubikaUrl = 'https://web.rubika.ir/#c=u0I694z06ef3f234f2ae3275cf100ed3';
-    window.open(rubikaUrl, '_blank');
+    window.open("https://web.rubika.ir/#c=u0I694z06ef3f234f2ae3275cf100ed3", '_blank');
 }
 
 function logout() {

@@ -1,921 +1,553 @@
 <!DOCTYPE html>
-<html lang="fa" dir="rtl" data-theme="dark">
+<html lang="fa" dir="rtl" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#0A0A0F">
-    <title>داشبورد — پالس اپ</title>
-    <link rel="stylesheet" href="css/style.css?v=20261011223512">
-    <link rel="stylesheet" href="css/dashboard.css?v=20261011223512">
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#0f0f1a">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="پالس مدیریت">
-    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-96x96.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="icons/icon-72x72.png">
+    <title>پالس مدیریت — داشبورد</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBase: '#09090b', darkCard: '#121215', darkSidebar: '#111111',
+                        darkBorder: '#27272a', darkTextMain: '#ffffff', darkTextMuted: '#a1a1aa',
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Vazirmatn', sans-serif; background-color: #09090b; color: #ffffff; margin: 0; padding: 0; overflow: hidden; }
+        
+        /* 🛡️ Force Page Layout */
+        .page-view {
+            display: none !important; /* Hide all by default */
+            position: absolute !important;
+            inset: 0 !important;
+            overflow-y: auto !important;
+            padding: 1.5rem !important; /* p-6 */
+        }
+        .page-view.active {
+            display: block !important; /* Show only active */
+        }
+        #chatContent.page-view.active {
+            display: flex !important;
+            flex-direction: row !important;
+            padding: 1.5rem !important;
+        }
+        
+        /* Prevent Text Squish */
+        .whitespace-nowrap { white-space: nowrap !important; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 10px; }
+    </style>
 
-<style>
-.apk-download-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: linear-gradient(135deg, #f1c40f, #e67e22);
-    color: #0f0f1a;
-    padding: 8px 14px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 700;
-    text-decoration: none;
-    transition: all 0.2s;
-    border: 1px solid rgba(241,196,15,0.3);
-}
-.apk-download-btn:hover {
-    transform: scale(1.05);
-    box-shadow: 0 4px 15px rgba(241,196,15,0.4);
-}
-@media (max-width: 600px) {
-    .apk-download-btn {
-        padding: 6px 10px;
-        font-size: 12px;
-    }
-    .apk-download-btn span {
-        display: none;
-    }
-}
-</style>
+    
+
+
+    
+
+
+    
+
+
+    
+
+
+    <style id="theme-variables">
+        /* 🎨 Light Mode Overrides (Ultimate Fix) */
+        
+        /* 1. Backgrounds (Main & Sidebar) */
+        html:not(.dark) body, 
+        html:not(.dark) main { 
+            background-color: #f4f4f5 !important; /* Zinc 100 */
+            color: #18181b !important; 
+        }
+        html:not(.dark) aside, 
+        html:not(.dark) header { 
+            background-color: #ffffff !important; 
+            border-color: #e4e4e7 !important; 
+        }
+
+        /* 2. Force Cards to White (Targeting exact classes used in HTML) */
+        html:not(.dark) .bg-darkCard,
+        html:not(.dark) .bg-\[\#121215\], 
+        html:not(.dark) .bg-\[\#111111\] {
+            background-color: #ffffff !important;
+            border-color: #e4e4e7 !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+        }
+
+        /* 3. Inner Backgrounds (Inputs, Progress Bar Backgrounds, Chat Bubbles) */
+        html:not(.dark) .bg-darkBase,
+        html:not(.dark) .bg-\[\#09090b\], 
+        html:not(.dark) .bg-zinc-800 {
+            background-color: #f4f4f5 !important; /* Light gray instead of dark */
+            border-color: #e4e4e7 !important;
+        }
+
+        /* 4. Text Colors */
+        html:not(.dark) .text-white, 
+        html:not(.dark) .text-zinc-100, 
+        html:not(.dark) .text-zinc-200,
+        html:not(.dark) .text-darkTextMain {
+            color: #18181b !important; /* Near black */
+        }
+        html:not(.dark) .text-zinc-300, 
+        html:not(.dark) .text-zinc-400,
+        html:not(.dark) .text-zinc-500,
+        html:not(.dark) .text-darkTextMuted {
+            color: #52525b !important; /* Dark gray */
+        }
+
+        /* 5. Borders */
+        html:not(.dark) .border-zinc-800, 
+        html:not(.dark) .border-zinc-700,
+        html:not(.dark) .border-darkBorder {
+            border-color: #e4e4e7 !important;
+        }
+
+        /* 6. Sidebar Active Item */
+        html:not(.dark) .nav-item.bg-amber-500\/10 {
+            background-color: #fef3c7 !important; /* Amber 100 */
+            color: #b45309 !important; /* Amber 700 */
+            border-color: #f59e0b !important; /* Amber 500 */
+        }
+        
+        /* 7. Adjust Progress Bar for Light Mode */
+        html:not(.dark) .bg-amber-500 {
+            background-color: #d97706 !important; /* Slightly darker amber for contrast */
+        }
+    </style>
 
 </head>
-<body class="dashboard-body">
+<body class="h-screen flex overflow-hidden antialiased">
 
-<!-- ============================================================
-     TOPBAR
-     ============================================================ -->
-<header class="topbar">
-    <div class="topbar-content">
-        
-        <div class="topbar-brand">
-            <button class="icon-btn menu-toggle" onclick="toggleSidebar()">☰</button>
-            <div class="topbar-logo">💎</div>
-            <div class="topbar-name">پالس مدیریت</div>
-        </div>
-
-        <div class="topbar-actions">
-            <a href="downloads/PulseManager.apk" 
-               class="apk-download-btn" 
-               download
-               title="دانلود اپلیکیشن موبایل"
-               id="apkDownloadBtn">
-                📱 نصب اپ
-            </a>
-
-            <button class="icon-btn" onclick="toggleTheme()" id="themeBtn" title="تغییر تم">
-                🌙
-            </button>
-            
-            <div class="user-chip">
-                <div class="user-avatar" id="userAvatar">?</div>
-                <span class="user-name" id="userName">...</span>
-            </div>
-
-            <button class="icon-btn" onclick="logout()" title="خروج">
-                🚪
-            </button>
-        </div>
+    <!-- Loading Overlay -->
+    <div id="loading" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#09090b] transition-opacity duration-300">
+        <div class="w-10 h-10 border-4 border-zinc-800 border-t-amber-500 rounded-full animate-spin mb-4"></div>
+        <p class="text-zinc-400 text-sm font-medium">در حال بارگذاری اطلاعات...</p>
     </div>
-</header>
 
-<!-- ============================================================
-     LAYOUT
-     ============================================================ -->
-<div class="app-layout">
 
     <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
-        <nav class="sidebar-nav">
-            <button class="nav-item active" data-page="dashboard" onclick="switchPage('dashboard')">
-                <span class="nav-icon">📊</span>
-                داشبورد
+    <aside class="w-64 bg-darkSidebar border-l border-darkBorder flex flex-col p-4 z-20 shrink-0 h-full">
+        <div class="flex items-center gap-3 px-2 mb-8 mt-2">
+            <div class="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
+                <i data-lucide="activity" class="w-5 h-5 text-amber-500 stroke-[1.5]"></i>
+            </div>
+            <span class="font-bold text-lg tracking-tight">پالس مدیریت</span>
+        </div>
+        
+        <nav class="flex-1 space-y-1.5">
+            <button onclick="switchPage('dashboard')" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded-xl bg-amber-500/10 text-amber-500 border-r-2 border-amber-500 font-bold transition-colors" data-page="dashboard">
+                <i data-lucide="layout-dashboard" class="w-5 h-5 stroke-[2]"></i> داشبورد
             </button>
-            <button class="nav-item" data-page="members" onclick="switchPage('members')">
-                <span class="nav-icon">👥</span>
-                اعضا
+            <button onclick="switchPage('members')" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded-xl text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800/50 font-medium transition-colors" data-page="members">
+                <i data-lucide="users" class="w-5 h-5 stroke-[1.5]"></i> اعضا
             </button>
-            <button class="nav-item" data-page="finance" onclick="switchPage('finance')">
-                <span class="nav-icon">💰</span>
-                امور مالی
+            <button onclick="switchPage('finance')" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded-xl text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800/50 font-medium transition-colors" data-page="finance">
+                <i data-lucide="wallet" class="w-5 h-5 stroke-[1.5]"></i> امور مالی
             </button>
-
-            <button class="nav-item" data-page="chat" onclick="switchPage('chat')">
-                <span class="nav-icon">💬</span>
-                <span class="nav-text">پیام‌رسان</span>
+            <button onclick="switchPage('chat')" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded-xl text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800/50 font-medium transition-colors" data-page="chat">
+                <i data-lucide="message-square" class="w-5 h-5 stroke-[1.5]"></i> پیام‌رسان
             </button>
-            <button class="nav-item" data-page="attendance" onclick="switchPage('attendance')">
-                <span class="nav-icon">✅</span>
-                حضور و غیاب
+            <button onclick="switchPage('attendance')" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded-xl text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800/50 font-medium transition-colors" data-page="attendance">
+                <i data-lucide="check-square" class="w-5 h-5 stroke-[1.5]"></i> حضور و غیاب
             </button>
-            <button class="nav-item" data-page="reports" onclick="switchPage('reports')">
-                <span class="nav-icon">📈</span>
-                گزارش‌ها
+            <button onclick="switchPage('reports')" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded-xl text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800/50 font-medium transition-colors" data-page="reports">
+                <i data-lucide="file-text" class="w-5 h-5 stroke-[1.5]"></i> گزارش‌ها
             </button>
-            <button class="nav-item" data-page="settings" onclick="switchPage('settings')">
-                <span class="nav-icon">⚙️</span>
-                تنظیمات
+            <button onclick="switchPage('settings')" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded-xl text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800/50 font-medium transition-colors" data-page="settings">
+                <i data-lucide="settings" class="w-5 h-5 stroke-[1.5]"></i> تنظیمات
             </button>
         </nav>
+        
+        <div class="mt-auto pt-4 border-t border-darkBorder">
+            <div class="flex items-center gap-3 px-2 cursor-pointer group" onclick="logout()">
+                <div id="userAvatar" class="w-9 h-9 rounded-full bg-zinc-800 flex items-center justify-center text-sm font-bold border border-zinc-700">?</div>
+                <div class="flex flex-col">
+                    <span id="userName" class="text-sm font-medium group-hover:text-amber-500 transition-colors">...</span>
+                    <span class="text-xs text-zinc-500">مدیر باشگاه</span>
+                </div>
+            </div>
+        </div>
     </aside>
 
-    <!-- Main -->
-    <main class="main-content">
+    <!-- Main Layout -->
+    <div class="flex-1 flex flex-col min-w-0 h-full relative">
+        
+        <!-- Top Bar -->
+        
+        <header class="w-full h-16 border-b border-zinc-800 flex justify-between items-center px-6 shrink-0 bg-[#111111] z-50">
+            <div class="flex items-center gap-3">
+                <i data-lucide="sun" class="w-5 h-5 text-amber-500 stroke-[1.5] hidden dark:block"></i>
+                <i data-lucide="sun" class="w-5 h-5 text-amber-600 stroke-[1.5] block dark:hidden"></i>
+                <div>
+                    <h1 id="greeting" class="text-lg font-bold tracking-tight text-white">...</h1>
+                    <p class="text-zinc-400 text-[11px] mt-0.5" id="clubInfo">...</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <!-- Theme Toggle Button -->
+                <button onclick="toggleTheme()" class="p-2 rounded-lg bg-[#09090b] border border-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors">
+                    <i data-lucide="moon" class="w-4 h-4 hidden dark:block stroke-[1.5]"></i>
+                    <i data-lucide="sun" class="w-4 h-4 block dark:hidden stroke-[1.5]"></i>
+                </button>
+                <button onclick="switchPage('attendance')" class="bg-amber-500 hover:bg-amber-400 text-zinc-950 px-4 py-2 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm shadow-amber-500/20">
+                    <i data-lucide="check" class="w-3.5 h-3.5 stroke-[3]"></i>
+                    ثبت حضور
+                </button>
+            </div>
+        </header>
 
-        <!-- Loading -->
-        <div class="loading-container" id="loading">
-            <div class="loading-spinner"></div>
-            <div class="loading-text">در حال بارگذاری...</div>
-        </div>
 
-        <!-- Dashboard Content (hidden until loaded) -->
-        <div id="dashboardContent" style="display: none;">
-
-            <!-- Welcome -->
-            <section class="welcome-section">
-                <h1 class="welcome-greeting" id="greeting">👋 سلام!</h1>
-                <p class="welcome-subtitle" id="clubInfo">...</p>
-                <div id="subscriptionBadge"></div>
-            </section>
-
-            <!-- Stats -->
-            <section class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-icon">👥</div>
-                    <div class="stat-info">
-                        <div class="stat-label">کل اعضا</div>
-                        <div class="stat-value" id="totalMembers">0</div>
+        <!-- Content Area -->
+        <main class="flex-1 relative overflow-hidden bg-darkBase min-w-0">
+            
+            <!-- Dashboard -->
+            <div id="dashboardContent" class="page-view active">
+                <div class="max-w-7xl mx-auto flex flex-col gap-6">
+                    <!-- Hero Banner -->
+                    <div class="w-full mb-2 relative overflow-hidden rounded-2xl bg-darkCard border border-darkBorder p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
+                        <div class="absolute inset-0 bg-gradient-to-l from-amber-500/5 to-transparent pointer-events-none"></div>
+                        <div class="relative z-10 flex-1 w-full text-right">
+                            <div class="flex items-center gap-2 mb-3 justify-start">
+                                <span id="subscriptionBadge" class="flex items-center gap-1.5 bg-amber-500/10 text-amber-500 text-xs font-bold px-2.5 py-1 rounded-md border border-amber-500/20">
+                                    <i data-lucide="check-circle" class="w-3.5 h-3.5 stroke-[2]"></i> لیستنس فعال
+                                </span>
+                                <span class="text-zinc-400 text-sm font-medium">اشتراک پالس</span>
+                            </div>
+                            <h2 class="text-2xl font-semibold tracking-tight text-zinc-200 mb-6 whitespace-nowrap overflow-hidden text-ellipsis">
+                                شما <span id="daysLeftPercent" class="text-4xl font-bold text-amber-500 mx-1">۳۴۴</span> روز <span class="text-amber-500">طلایی</span> در پیش دارید
+                            </h2>
+                            <div class="w-full max-w-xl ml-auto">
+                                <div class="flex justify-between text-xs text-zinc-400 mb-2 font-mono">
+                                    <span>مصرف شده</span><span id="daysLeftText">...</span>
+                                </div>
+                                <div class="h-2.5 w-full bg-zinc-800 rounded-full overflow-hidden">
+                                    <div id="progressFill" class="h-full bg-amber-500 rounded-full w-[10%] relative transition-all duration-1000"></div>
+                                </div>
+                                <div class="text-left mt-2 text-xs text-zinc-500 font-mono" id="subscriptionEndText">...</div>
+                            </div>
+                        </div>
+                        <div class="relative z-10 shrink-0 w-full md:w-auto mt-4 md:mt-0">
+                            <button onclick="contactSupport()" class="w-full md:w-auto justify-center bg-transparent hover:bg-amber-500/10 text-amber-500 border border-amber-500/30 px-6 py-2.5 rounded-lg font-bold text-sm transition-all flex items-center gap-2">
+                                <i data-lucide="crown" class="w-4 h-4"></i> تمدید اشتراک
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Stats -->
+                    <div class="w-full grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="bg-darkCard border border-darkBorder rounded-xl p-5 shadow-sm flex items-center justify-between">
+                            <div><p class="text-sm text-zinc-400 font-medium mb-1 whitespace-nowrap">کل اعضا</p><h3 id="totalMembers" class="text-2xl font-bold font-mono">0</h3></div>
+                            <div class="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0"><i data-lucide="users" class="w-5 h-5"></i></div>
+                        </div>
+                        <div class="bg-darkCard border border-darkBorder rounded-xl p-5 shadow-sm flex items-center justify-between">
+                            <div><p class="text-sm text-zinc-400 font-medium mb-1 whitespace-nowrap">اعضای این ماه</p><h3 id="newMembers" class="text-2xl font-bold font-mono">0</h3></div>
+                            <div class="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0"><i data-lucide="user-plus" class="w-5 h-5"></i></div>
+                        </div>
+                        <div class="bg-darkCard border border-darkBorder rounded-xl p-5 shadow-sm flex items-center justify-between">
+                            <div><p class="text-sm text-zinc-400 font-medium mb-1 whitespace-nowrap">درآمد این ماه</p><h3 id="monthIncome" class="text-2xl font-bold font-mono">0</h3></div>
+                            <div class="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0"><i data-lucide="wallet" class="w-5 h-5"></i></div>
+                        </div>
+                        <div class="bg-darkCard border border-darkBorder rounded-xl p-5 shadow-sm flex items-center justify-between">
+                            <div><p class="text-sm text-zinc-400 font-medium mb-1 whitespace-nowrap">اقساط معلق</p><h3 id="unpaidInstallments" class="text-2xl font-bold font-mono">0</h3></div>
+                            <div class="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0"><i data-lucide="clock" class="w-5 h-5"></i></div>
+                        </div>
                     </div>
                 </div>
+            </div>
 
-                <div class="stat-card">
-                    <div class="stat-icon">🆕</div>
-                    <div class="stat-info">
-                        <div class="stat-label">اعضای این ماه</div>
-                        <div class="stat-value" id="newMembers">0</div>
+            <!-- Members -->
+            
+            <!-- === MEMBERS === -->
+            <div id="membersContent" class="page-view">
+                <div class="max-w-7xl mx-auto flex flex-col gap-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <h1 class="text-2xl font-bold flex items-center gap-2 text-zinc-100"><i data-lucide="users" class="w-6 h-6 text-amber-500 stroke-[1.5]"></i> اعضا</h1>
+                    </div>
+                    
+                    <div class="w-full grid grid-cols-1 sm:grid-cols-3 gap-4 mb-2">
+                        <div class="bg-[#121215] border border-zinc-800 rounded-xl p-5 shadow-sm flex items-center justify-between">
+                            <div><p class="text-sm text-zinc-400 font-medium mb-1">کل اعضا</p><h3 id="mTotalCount" class="text-2xl font-bold text-zinc-100 font-mono">0</h3></div>
+                            <div class="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0"><i data-lucide="users" class="w-5 h-5 stroke-[1.5]"></i></div>
+                        </div>
+                        <div class="bg-[#121215] border border-zinc-800 rounded-xl p-5 shadow-sm flex items-center justify-between">
+                            <div><p class="text-sm text-zinc-400 font-medium mb-1">اعضای فعال</p><h3 id="mActiveCount" class="text-2xl font-bold text-zinc-100 font-mono">0</h3></div>
+                            <div class="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 shrink-0"><i data-lucide="user-check" class="w-5 h-5 stroke-[1.5]"></i></div>
+                        </div>
+                        <div class="bg-[#121215] border border-zinc-800 rounded-xl p-5 shadow-sm flex items-center justify-between">
+                            <div><p class="text-sm text-zinc-400 font-medium mb-1">اعضای این ماه</p><h3 id="mMonthCount" class="text-2xl font-bold text-zinc-100 font-mono">0</h3></div>
+                            <div class="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500 shrink-0"><i data-lucide="user-plus" class="w-5 h-5 stroke-[1.5]"></i></div>
+                        </div>
+                    </div>
+
+                    <div class="w-full mb-2 relative">
+                        <input type="text" id="memberSearch" class="w-full h-10 bg-[#121215] border border-zinc-800 rounded-lg pr-10 pl-4 text-sm text-zinc-100 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/50 transition-all placeholder-zinc-500" placeholder="جستجو بر اساس نام، شماره یا کد..." oninput="filterMembers()">
+                        <i data-lucide="search" class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 stroke-[1.5]"></i>
+                    </div>
+
+                    <div class="loading-container" id="membersLoading" style="display: none;"><div class="w-8 h-8 border-4 border-zinc-800 border-t-amber-500 rounded-full animate-spin mx-auto"></div></div>
+                    
+                    <div class="w-full bg-[#121215] border border-zinc-800 rounded-xl overflow-hidden shadow-sm">
+                        <div id="membersList" class="w-full flex flex-col"></div>
+                        <div id="membersEmpty" class="text-center py-12 text-zinc-500" style="display: none;">
+                            <i data-lucide="users" class="w-12 h-12 mx-auto mb-3 opacity-30 stroke-[1.5]"></i>
+                            <p class="text-sm">هنوز عضوی اضافه نشده است</p>
+                        </div>
                     </div>
                 </div>
+            </div>
 
-                <div class="stat-card">
-                    <div class="stat-icon">💰</div>
-                    <div class="stat-info">
-                        <div class="stat-label">درآمد این ماه</div>
-                        <div class="stat-value" id="monthIncome">0</div>
+            <!-- === ATTENDANCE === -->
+            <div id="attendanceContent" class="page-view">
+                <div class="max-w-7xl mx-auto flex flex-col gap-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <h1 class="text-2xl font-bold flex items-center gap-2 text-zinc-100"><i data-lucide="check-square" class="w-6 h-6 text-amber-500 stroke-[1.5]"></i> حضور و غیاب</h1>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-2">
+                        <div class="bg-[#121215] border border-zinc-800 rounded-xl p-5 shadow-sm text-center">
+                            <div class="text-sm text-zinc-400 mb-1">حاضر</div>
+                            <div id="attPresentCount" class="text-2xl font-bold text-emerald-500">0</div>
+                        </div>
+                        <div class="bg-[#121215] border border-zinc-800 rounded-xl p-5 shadow-sm text-center">
+                            <div class="text-sm text-zinc-400 mb-1">غایب</div>
+                            <div id="attAbsentCount" class="text-2xl font-bold text-red-500">0</div>
+                        </div>
+                        <div class="bg-[#121215] border border-zinc-800 rounded-xl p-5 shadow-sm text-center">
+                            <div class="text-sm text-zinc-400 mb-1">کل اعضا</div>
+                            <div id="attTotalCount" class="text-2xl font-bold text-zinc-100">0</div>
+                        </div>
+                    </div>
+                    <div class="bg-[#121215] border border-zinc-800 rounded-xl p-4 mb-2 flex flex-wrap items-center gap-3">
+                        <label class="text-sm font-medium text-zinc-300">تاریخ:</label>
+                        <input type="date" id="attendanceDate" class="bg-[#09090b] border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-amber-500" onchange="onDateChange()">
+                        <button class="text-sm border border-zinc-800 hover:bg-zinc-800 text-zinc-300 px-3 py-2 rounded-lg transition-colors" onclick="setDateToday()">امروز</button>
+                        <button class="text-sm border border-zinc-800 hover:bg-zinc-800 text-zinc-300 px-3 py-2 rounded-lg transition-colors" onclick="setDateYesterday()">دیروز</button>
+                    </div>
+                    <h3 class="text-lg font-bold text-zinc-100 mb-2 flex items-center gap-2"><i data-lucide="check-circle" class="w-5 h-5 text-emerald-500"></i> حاضران <span id="presentBadge" class="bg-emerald-500/20 text-emerald-500 text-xs px-2 py-0.5 rounded-full">0</span></h3>
+                    <div class="loading-container" id="attendanceLoading" style="display: none;"><div class="w-8 h-8 border-4 border-zinc-800 border-t-amber-500 rounded-full animate-spin mx-auto"></div></div>
+                    <div id="attendanceList" class="flex flex-col gap-3"></div>
+                    <div id="attendanceEmpty" class="text-center py-10 text-zinc-500" style="display: none;">
+                        <i data-lucide="clipboard-x" class="w-12 h-12 mx-auto mb-3 opacity-30 stroke-[1.5]"></i>
+                        <p>هنوز کسی در این تاریخ حاضر نشده</p>
                     </div>
                 </div>
+            </div>
 
-                <div class="stat-card">
-                    <div class="stat-icon">⏳</div>
-                    <div class="stat-info">
-                        <div class="stat-label">اقساط پرداخت‌نشده</div>
-                        <div class="stat-value" id="unpaidInstallments">0</div>
+            <!-- === FINANCE === -->
+            <div id="financeContent" class="page-view">
+                <div class="max-w-7xl mx-auto flex flex-col gap-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <h1 class="text-2xl font-bold flex items-center gap-2 text-zinc-100"><i data-lucide="wallet" class="w-6 h-6 text-amber-500 stroke-[1.5]"></i> امور مالی</h1>
+                    </div>
+                    <div class="bg-[#121215] border border-zinc-800 rounded-xl p-4 flex flex-wrap items-center gap-3">
+                        <input type="text" id="financeMonth" placeholder="1405-07" class="bg-[#09090b] border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-amber-500 w-32" onchange="onFinanceMonthChange()">
+                        <button class="text-sm border border-zinc-800 hover:bg-zinc-800 text-zinc-300 px-3 py-2 rounded-lg transition-colors" onclick="setFinanceMonthCurrent()">ماه جاری</button>
+                        <button class="text-sm border border-zinc-800 hover:bg-zinc-800 text-zinc-300 px-3 py-2 rounded-lg transition-colors" onclick="loadFinance()">رفرش</button>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-2">
+                        <div class="bg-[#121215] border border-zinc-800 rounded-xl p-5 shadow-sm text-center">
+                            <div class="text-sm text-zinc-400 mb-1">درآمد ماه</div>
+                            <div id="finIncome" class="text-xl font-bold text-emerald-500">0</div>
+                        </div>
+                        <div class="bg-[#121215] border border-zinc-800 rounded-xl p-5 shadow-sm text-center">
+                            <div class="text-sm text-zinc-400 mb-1">تعداد پرداخت</div>
+                            <div id="finCount" class="text-xl font-bold text-zinc-100">0</div>
+                        </div>
+                        <div class="bg-[#121215] border border-zinc-800 rounded-xl p-5 shadow-sm text-center">
+                            <div class="text-sm text-zinc-400 mb-1">میانگین</div>
+                            <div id="finAvg" class="text-xl font-bold text-amber-500">0</div>
+                        </div>
+                        <div class="bg-[#121215] border border-zinc-800 rounded-xl p-5 shadow-sm text-center">
+                            <div class="text-sm text-zinc-400 mb-1">اقساط معلق</div>
+                            <div id="finPending" class="text-xl font-bold text-red-500">0</div>
+                        </div>
+                    </div>
+                    <div class="loading-container" id="financeLoading" style="display: none;"><div class="w-8 h-8 border-4 border-zinc-800 border-t-amber-500 rounded-full animate-spin mx-auto"></div></div>
+                    
+                    <h3 class="text-lg font-bold text-zinc-100 mb-2 flex items-center gap-2"><i data-lucide="receipt" class="w-5 h-5 text-emerald-500"></i> آخرین پرداخت‌ها <span id="paymentsBadge" class="bg-emerald-500/20 text-emerald-500 text-xs px-2 py-0.5 rounded-full">0</span></h3>
+                    <div id="paymentsList" class="flex flex-col gap-3 mb-6"></div>
+                    <div id="paymentsEmpty" class="text-center py-6 text-zinc-500" style="display: none;"><p>در این ماه پرداختی ثبت نشده</p></div>
+                    
+                    <h3 class="text-lg font-bold text-zinc-100 mb-2 flex items-center gap-2"><i data-lucide="alert-circle" class="w-5 h-5 text-red-500"></i> اقساط معلق <span id="installmentsBadge" class="bg-red-500/20 text-red-500 text-xs px-2 py-0.5 rounded-full">0</span></h3>
+                    <div id="installmentsList" class="flex flex-col gap-3"></div>
+                    <div id="installmentsEmpty" class="text-center py-6 text-zinc-500" style="display: none;"><p>همه‌ی اقساط پرداخت شده</p></div>
+                </div>
+            </div>
+
+            <!-- === REPORTS === -->
+            <div id="reportsContent" class="page-view">
+                <div class="max-w-7xl mx-auto flex flex-col gap-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <h1 class="text-2xl font-bold flex items-center gap-2 text-zinc-100"><i data-lucide="file-text" class="w-6 h-6 text-amber-500 stroke-[1.5]"></i> گزارش‌ها</h1>
+                    </div>
+                    <div class="bg-[#121215] border border-zinc-800 rounded-xl p-4 flex flex-wrap items-center gap-3">
+                        <input type="month" id="reportMonth" class="bg-[#09090b] border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-amber-500" onchange="onReportMonthChange()">
+                        <button class="text-sm border border-zinc-800 hover:bg-zinc-800 text-zinc-300 px-3 py-2 rounded-lg transition-colors" onclick="setReportMonthCurrent()">ماه جاری</button>
+                        <button class="text-sm border border-zinc-800 hover:bg-zinc-800 text-zinc-300 px-3 py-2 rounded-lg transition-colors" onclick="loadReports()">رفرش</button>
+                    </div>
+                    <div class="loading-container" id="reportsLoading" style="display: none;"><div class="w-8 h-8 border-4 border-zinc-800 border-t-amber-500 rounded-full animate-spin mx-auto"></div></div>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-2">
+                        <div class="bg-[#121215] border border-zinc-800 rounded-xl p-5 shadow-sm text-center">
+                            <div class="text-sm text-zinc-400 mb-1">کل اعضا</div>
+                            <div id="rTotalMembers" class="text-xl font-bold text-zinc-100">0</div>
+                        </div>
+                        <div class="bg-[#121215] border border-zinc-800 rounded-xl p-5 shadow-sm text-center">
+                            <div class="text-sm text-zinc-400 mb-1">حضور این ماه</div>
+                            <div id="rMonthAttendances" class="text-xl font-bold text-emerald-500">0</div>
+                        </div>
+                        <div class="bg-[#121215] border border-zinc-800 rounded-xl p-5 shadow-sm text-center">
+                            <div class="text-sm text-zinc-400 mb-1">نرخ حضور</div>
+                            <div id="rAttendanceRate" class="text-xl font-bold text-blue-500">0%</div>
+                        </div>
+                        <div class="bg-[#121215] border border-zinc-800 rounded-xl p-5 shadow-sm text-center">
+                            <div class="text-sm text-zinc-400 mb-1">درآمد ماه</div>
+                            <div id="rMonthIncome" class="text-xl font-bold text-amber-500">0</div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-[#121215] border border-zinc-800 rounded-xl p-6 mb-2">
+                        <h3 class="text-lg font-bold text-zinc-100 mb-4">نمودار حضور روزانه</h3>
+                        <div id="attendanceChart" class="flex items-end h-48 gap-2 overflow-x-auto pb-4"></div>
+                        <div id="chartEmpty" class="text-center py-6 text-zinc-500" style="display: none;"><p>داده‌ای برای نمایش نیست</p></div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-[#121215] border border-zinc-800 rounded-xl p-6">
+                            <h3 class="text-lg font-bold text-zinc-100 mb-4">اعضای برتر</h3>
+                            <div id="topMembersList" class="flex flex-col gap-3"></div>
+                            <div id="topMembersEmpty" class="text-center py-6 text-zinc-500" style="display: none;"><p>داده‌ای نیست</p></div>
+                        </div>
+                        <div class="bg-[#121215] border border-zinc-800 rounded-xl p-6">
+                            <h3 class="text-lg font-bold text-zinc-100 mb-4 flex items-center justify-between">اعضای جدید <span id="newMembersBadge" class="bg-amber-500/20 text-amber-500 text-xs px-2 py-0.5 rounded-full">0</span></h3>
+                            <div id="newMembersList" class="flex flex-col gap-3"></div>
+                            <div id="newMembersEmpty" class="text-center py-6 text-zinc-500" style="display: none;"><p>عضوی اضافه نشده</p></div>
+                        </div>
                     </div>
                 </div>
-            </section>
+            </div>
 
-            <!-- Progress -->
-            <section class="progress-section" id="subscriptionProgress">
-                <div class="progress-header">
-                    <div class="progress-title">📅 دوره‌ی رایگان</div>
-                    <div class="progress-percent" id="daysLeftPercent">—</div>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
-                </div>
-                <div class="progress-info">
-                    <span id="daysLeftText">...</span>
-                    <span id="subscriptionEndText">...</span>
-                </div>
-            </section>
-
-            <!-- Action Cards -->
-            <section class="action-grid" style="margin-top: 24px;">
-
-                <!-- Download Desktop -->
-                <div class="action-card">
-                    <div class="action-card-header">
-                        <div class="action-card-icon">⬇️</div>
-                        <div class="action-card-title">نسخه دسکتاپ</div>
+            
+            <!-- === SETTINGS === -->
+            <div id="settingsContent" class="page-view">
+                <div class="max-w-7xl mx-auto flex flex-col gap-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <h1 class="text-2xl font-bold flex items-center gap-2 text-zinc-100"><i data-lucide="settings" class="w-6 h-6 text-amber-500 stroke-[1.5]"></i> تنظیمات</h1>
                     </div>
-                    <p class="action-card-desc">
-                        نرم‌افزار اصلی مدیریت مجموعه را برای کامپیوتر دریافت کنید. تمام اطلاعات اینجا در دسترس شماست.
-                    </p>
-                    <div class="action-buttons">
-                        <button class="btn btn-gold btn-sm" onclick="downloadDesktop()">
-                            ⬇️ دانلود
-                        </button>
-                        <button class="btn btn-ghost btn-sm" onclick="showLicense()">
-                            🔑 لایسنس
-                        </button>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Account Info -->
+                        <div class="bg-[#121215] border border-zinc-800 rounded-xl p-6 shadow-sm">
+                            <h3 class="text-base font-bold text-zinc-100 mb-4">اطلاعات حساب</h3>
+                            <div class="flex flex-col divide-y divide-zinc-800">
+                                <div class="flex justify-between items-center py-3"><span class="text-zinc-400 text-sm">نام کاربر</span> <span id="setFullName" class="text-zinc-100 font-medium text-sm">—</span></div>
+                                <div class="flex justify-between items-center py-3"><span class="text-zinc-400 text-sm">شماره موبایل</span> <span id="setPhone" class="text-zinc-100 font-medium text-sm font-mono" dir="ltr">—</span></div>
+                                <div class="flex justify-between items-center py-3"><span class="text-zinc-400 text-sm">نام باشگاه</span> <span id="setClubName" class="text-zinc-100 font-medium text-sm">—</span></div>
+                                <div class="flex justify-between items-center py-3"><span class="text-zinc-400 text-sm">کد مشتری</span> <span id="setCustomerCode" class="text-zinc-100 font-medium text-sm font-mono">—</span></div>
+                                <div class="flex justify-between items-center py-3"><span class="text-zinc-400 text-sm">نام کاربری</span> <span id="setUsername" class="text-zinc-100 font-medium text-sm font-mono" dir="ltr">—</span></div>
+                                <div class="flex justify-between items-center py-3"><span class="text-zinc-400 text-sm">ایمیل</span> <span id="setEmail" class="text-zinc-100 font-medium text-sm font-mono" dir="ltr">—</span></div>
+                            </div>
+                        </div>
+                        <!-- Subscription -->
+                        <div class="bg-[#121215] border border-zinc-800 rounded-xl p-6 shadow-sm">
+                            <h3 class="text-base font-bold text-zinc-100 mb-4">وضعیت اشتراک</h3>
+                            <div id="subscriptionBox"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Theme & Logout -->
+                    <div class="bg-[#121215] border border-zinc-800 rounded-xl p-6 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div>
+                            <h3 class="text-base font-bold text-zinc-100 mb-1">ظاهر برنامه</h3>
+                            <p class="text-zinc-400 text-xs">رنگ‌بندی مورد نظر خود را انتخاب کنید.</p>
+                        </div>
+                        <div class="inline-flex bg-[#09090b] border border-zinc-800 rounded-lg p-1">
+                            <button id="themeDarkBtn" onclick="setTheme('dark')" class="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors hover:text-zinc-100 text-zinc-400">
+                                <i data-lucide="moon" class="w-4 h-4"></i> تاریک
+                            </button>
+                            <button id="themeLightBtn" onclick="setTheme('light')" class="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors hover:text-zinc-100 text-zinc-400">
+                                <i data-lucide="sun" class="w-4 h-4"></i> روشن
+                            </button>
+                        </div>
+                    </div>
+
+                    <button onclick="logout()" class="w-full flex items-center justify-center gap-2 py-3 border border-red-500/50 text-red-500 rounded-xl hover:bg-red-500/10 transition-colors font-medium text-sm mb-8">
+                        <i data-lucide="log-out" class="w-4 h-4"></i> خروج از حساب
+                    </button>
+                </div>
+            </div>
+
+        
+            <!-- === CHAT === -->
+            <div id="chatContent" class="page-view">
+                <div class="w-full h-full max-w-7xl mx-auto flex flex-row gap-4">
+                    <!-- Right Column: Chat List -->
+                    <div class="w-80 shrink-0 bg-[#121215] border border-zinc-800 rounded-xl flex flex-col overflow-hidden shadow-sm">
+                        <div class="p-4 border-b border-zinc-800 flex items-center gap-2">
+                            <i data-lucide="message-square" class="w-5 h-5 text-amber-500"></i><h2 class="font-bold text-zinc-100">پیام‌رسان</h2>
+                        </div>
+                        <div id="chatRoomsList" class="flex-1 overflow-y-auto p-2">
+                            <div class="text-center py-6 text-zinc-500 text-sm">در حال بارگذاری...</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Left Column: Chat Window -->
+                    <div class="flex-1 bg-[#121215] border border-zinc-800 rounded-xl flex flex-col overflow-hidden relative shadow-sm">
+                        <div id="chatEmptyState" class="absolute inset-0 flex flex-col items-center justify-center text-zinc-500 z-10">
+                            <div class="w-16 h-16 rounded-2xl bg-zinc-800/50 flex items-center justify-center mb-4 border border-zinc-800/50">
+                                <i data-lucide="message-square" class="w-8 h-8 stroke-[1.5]"></i>
+                            </div>
+                            <p class="text-sm font-medium">برای شروع، یک گفتگو را انتخاب کنید</p>
+                        </div>
+                        <div id="chatConversation" class="w-full h-full flex flex-col relative z-20" style="display: none;">
+                            <div class="p-4 border-b border-zinc-800 flex items-center gap-3 bg-[#121215] shrink-0">
+                                <button onclick="backToRoomList()" class="md:hidden p-1.5 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 rounded-lg transition-colors">
+                                    <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                                </button>
+                                <h3 id="chatConvTitle" class="font-bold text-zinc-100">—</h3>
+                            </div>
+                            <div id="chatMessagesList" class="flex-1 p-6 overflow-y-auto flex flex-col gap-3 bg-[#09090b]"></div>
+                            <div class="p-4 border-t border-zinc-800 bg-[#121215] shrink-0">
+                                <div class="relative w-full">
+                                    <input type="text" id="chatMessageInput" placeholder="پیام خود را بنویسید..." class="w-full bg-[#09090b] border border-zinc-800 rounded-lg py-3 pr-4 pl-12 text-sm text-zinc-100 focus:outline-none focus:border-amber-500/50 placeholder-zinc-500 transition-colors">
+                                    <button id="chatSendBtn" onclick="sendChatMessage()" class="absolute left-2 top-1/2 -translate-y-1/2 text-amber-500 hover:text-amber-400 p-2 transition-colors">
+                                        <i data-lucide="send" class="w-5 h-5 stroke-[1.5]"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-
-                <!-- Portal Link -->
-                <div class="action-card">
-                    <div class="action-card-header">
-                        <div class="action-card-icon">📱</div>
-                        <div class="action-card-title">پورتال اعضا</div>
-                    </div>
-                    <p class="action-card-desc">
-                        لینک پورتال را برای اعضای مجموعه ارسال کنید تا اقساط، حضور و کارت عضویت خود را ببینند.
-                    </p>
-                    <div class="action-buttons">
-                        <button class="btn btn-blue btn-sm" onclick="copyPortalLink()">
-                            📋 کپی لینک
-                        </button>
-                        <button class="btn btn-ghost btn-sm" onclick="openPortal()">
-                            🌐 باز کردن
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Support -->
-                <div class="action-card">
-                    <div class="action-card-header">
-                        <div class="action-card-icon">💬</div>
-                        <div class="action-card-title">پشتیبانی</div>
-                    </div>
-                    <p class="action-card-desc">
-                        برای خرید لایسنس، تمدید اشتراک یا هر سوالی با ما در روبیکا در تماس باشید.
-                    </p>
-                    <div class="action-buttons">
-                        <button class="btn btn-green btn-sm" onclick="contactSupport()">
-                            💬 چت با پشتیبانی
-                        </button>
-                    </div>
-                </div>
-
-            </section>
-
-        </div>
-
-<!-- 💬 پیام‌رسان -->
-<div id="chatContent" style="display: none;">
-    <!-- حالت لیست اتاق‌ها -->
-    <div id="chatRoomList">
-        <div class="section-header">
-            <h2>💬 پیام‌رسان</h2>
-            <button class="btn-secondary" onclick="loadChatRooms()">🔄</button>
-        </div>
-        <div id="chatRoomsList" class="chat-rooms-list">
-            <div class="loading">در حال بارگذاری...</div>
-        </div>
+            </div>
+        </main>
     </div>
 
-    <!-- حالت گفت‌وگو -->
-    <div id="chatConversation" style="display: none;">
-        <div class="chat-conv-header">
-            <button class="chat-back-btn" onclick="backToRoomList()">↩️ بازگشت</button>
-            <h3 id="chatConvTitle">—</h3>
-        </div>
-
-        <div id="chatMessagesList" class="chat-messages-list"></div>
-
-        <div class="chat-input-bar">
-            <textarea id="chatMessageInput" placeholder="پیام بنویس..." rows="1" maxlength="1000"></textarea>
-            <button id="chatSendBtn" onclick="sendChatMessage()">📤</button>
-        </div>
-    </div>
-</div>
-
-        <!-- Members Content -->
-        <div id="membersContent" style="display: none;">
-
-            <!-- Header -->
-            <section class="page-header">
-                <h1 class="page-title">👥 اعضا</h1>
-                <p class="page-subtitle">مدیریت ورزشکاران و دانش‌آموزان</p>
-            </section>
-
-            <!-- Stats -->
-            <section class="stats-grid" style="margin-bottom: 20px;">
-                <div class="stat-card">
-                    <div class="stat-icon">👥</div>
-                    <div class="stat-info">
-                        <div class="stat-label">کل اعضا</div>
-                        <div class="stat-value" id="mTotalCount">0</div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">✅</div>
-                    <div class="stat-info">
-                        <div class="stat-label">فعال</div>
-                        <div class="stat-value" id="mActiveCount">0</div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">🆕</div>
-                    <div class="stat-info">
-                        <div class="stat-label">این ماه</div>
-                        <div class="stat-value" id="mMonthCount">0</div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Toolbar -->
-            <section class="toolbar">
-                <input type="text" id="memberSearch" class="search-input"
-                       placeholder="🔍 جستجو بر اساس نام، شماره یا کد..."
-                       oninput="filterMembers()">
-                <span class="view-only-badge">👁 فقط مشاهده</span>
-            </section>
-
-            <!-- Loading -->
-            <div class="loading-container" id="membersLoading" style="display: none;">
-                <div class="loading-spinner"></div>
-                <div class="loading-text">در حال بارگذاری...</div>
-            </div>
-
-            <!-- Members List -->
-            <div id="membersList" class="members-list"></div>
-
-            <!-- Empty -->
-            <div id="membersEmpty" class="empty-state" style="display: none;">
-                <div style="font-size: 60px; margin-bottom: 15px;">👥</div>
-                <div style="font-size: 16px; color: #95a5a6;">هنوز عضوی اضافه نشده است</div>
-                
-            </div>
-
-        </div>
-
-        <!-- ═══ Attendance Content ═══ -->
-        <div id="attendanceContent" style="display: none;">
-
-            <section class="page-header">
-                <h1 class="page-title">✅ حضور و غیاب</h1>
-                <p class="page-subtitle">ثبت و پیگیری حضور اعضا</p>
-            </section>
-
-            <!-- آمار -->
-            <section class="stats-grid" style="margin-bottom: 20px;">
-                <div class="stat-card">
-                    <div class="stat-icon" style="background: rgba(46, 204, 113, 0.15);">✅</div>
-                    <div class="stat-info">
-                        <div class="stat-label">حاضر</div>
-                        <div class="stat-value" id="attPresentCount">0</div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon" style="background: rgba(231, 76, 60, 0.15);">❌</div>
-                    <div class="stat-info">
-                        <div class="stat-label">غایب</div>
-                        <div class="stat-value" id="attAbsentCount">0</div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">📊</div>
-                    <div class="stat-info">
-                        <div class="stat-label">کل اعضا</div>
-                        <div class="stat-value" id="attTotalCount">0</div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- تاریخ -->
-            <section class="date-section">
-                <label class="date-label">📅 تاریخ:</label>
-                <input type="date" id="attendanceDate" class="date-input"
-                       onchange="onDateChange()">
-                <button class="btn btn-ghost btn-sm" onclick="setDateToday()">
-                    امروز
-                </button>
-                <button class="btn btn-ghost btn-sm" onclick="setDateYesterday()">
-                    دیروز
-                </button>
-            </section>
-
-            <!-- 🔒 فقط مشاهده -->
-            <div class="view-only-notice">
-                <span style="font-size: 20px;">👁</span>
-                <span>این پنل فقط برای <strong>مشاهده</strong> است. برای ثبت حضور یا افزودن عضو، از نسخه‌ی دسکتاپ استفاده کنید.</span>
-            </div>
-
-            <!-- لیست حاضران امروز -->
-            <section class="attendance-list-section">
-                <h3 class="section-title">
-                    ✅ حاضران
-                    <span class="badge-count" id="presentBadge">0</span>
-                </h3>
-
-                <div class="loading-container" id="attendanceLoading" style="display: none;">
-                    <div class="loading-spinner"></div>
-                </div>
-
-                <div id="attendanceList" class="attendance-list"></div>
-
-                <div id="attendanceEmpty" class="empty-state" style="display: none;">
-                    <div style="font-size: 60px; margin-bottom: 15px;">📋</div>
-                    <div style="font-size: 15px; color: #95a5a6;">
-                        هنوز کسی در این تاریخ حاضر نشده
-                    </div>
-                </div>
-            </section>
-
-        </div>
-
-        <!-- ═══ Finance Content ═══ -->
-        <div id="financeContent" style="display: none;">
-
-            <section class="page-header">
-                <h1 class="page-title">💰 امور مالی</h1>
-                <p class="page-subtitle">مشاهده‌ی پرداخت‌ها و اقساط</p>
-            </section>
-
-            <!-- 👁 View-only Notice -->
-            <div class="view-only-notice">
-                <span style="font-size: 20px;">👁</span>
-                <span>این بخش فقط برای <strong>مشاهده</strong> است. برای ثبت پرداخت، از نسخه‌ی دسکتاپ استفاده کنید.</span>
-            </div>
-
-            <!-- فیلتر ماه -->
-            <section class="toolbar">
-                <input type="text" id="financeMonth" placeholder="1405-07" class="date-input"
-                       onchange="onFinanceMonthChange()">
-                <button class="btn btn-ghost btn-sm" onclick="setFinanceMonthCurrent()">
-                    ماه جاری
-                </button>
-                <button class="btn btn-ghost btn-sm" onclick="loadFinance()">
-                    🔄 رفرش
-                </button>
-            </section>
-
-            <!-- آمار -->
-            <section class="stats-grid" style="margin-bottom: 24px;">
-                <div class="stat-card">
-                    <div class="stat-icon" style="background: rgba(46, 204, 113, 0.15);">💵</div>
-                    <div class="stat-info">
-                        <div class="stat-label">درآمد ماه</div>
-                        <div class="stat-value" id="finIncome">0</div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">📅</div>
-                    <div class="stat-info">
-                        <div class="stat-label">تعداد پرداخت</div>
-                        <div class="stat-value" id="finCount">0</div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon" style="background: rgba(241, 196, 15, 0.15);">📈</div>
-                    <div class="stat-info">
-                        <div class="stat-label">میانگین</div>
-                        <div class="stat-value" id="finAvg">0</div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon" style="background: rgba(231, 76, 60, 0.15);">⏳</div>
-                    <div class="stat-info">
-                        <div class="stat-label">اقساط معلق</div>
-                        <div class="stat-value" id="finPending">0</div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Loading -->
-            <div class="loading-container" id="financeLoading" style="display: none;">
-                <div class="loading-spinner"></div>
-                <div class="loading-text">در حال بارگذاری...</div>
-            </div>
-
-            <!-- پرداخت‌ها -->
-            <section class="finance-section">
-                <h3 class="section-title">
-                    💵 آخرین پرداخت‌ها
-                    <span class="badge-count" id="paymentsBadge">0</span>
-                </h3>
-                <div id="paymentsList" class="payment-list"></div>
-                <div id="paymentsEmpty" class="empty-state" style="display: none;">
-                    <div style="font-size: 50px; margin-bottom: 10px;">💵</div>
-                    <div style="color: #95a5a6; font-size: 14px;">
-                        در این ماه پرداختی ثبت نشده
-                    </div>
-                </div>
-            </section>
-
-            <!-- اقساط معلق -->
-            <section class="finance-section" style="margin-top: 30px;">
-                <h3 class="section-title">
-                    ⏳ اقساط معلق
-                    <span class="badge-count badge-red" id="installmentsBadge">0</span>
-                </h3>
-                <div id="installmentsList" class="installment-list"></div>
-                <div id="installmentsEmpty" class="empty-state" style="display: none;">
-                    <div style="font-size: 50px; margin-bottom: 10px;">✅</div>
-                    <div style="color: #95a5a6; font-size: 14px;">
-                        همه‌ی اقساط پرداخت شده
-                    </div>
-                </div>
-            </section>
-
-        </div>
-
-        <!-- ═══ Reports Content ═══ -->
-        <div id="reportsContent" style="display: none;">
-
-            <section class="page-header">
-                <h1 class="page-title">📈 گزارش‌ها</h1>
-                <p class="page-subtitle">آمار و تحلیل عملکرد مجموعه</p>
-            </section>
-
-            <!-- 👁 View-only -->
-            <div class="view-only-notice">
-                <span style="font-size: 20px;">👁</span>
-                <span>این بخش فقط برای <strong>مشاهده</strong> است.</span>
-            </div>
-
-            <!-- فیلتر ماه -->
-            <section class="toolbar">
-                <input type="month" id="reportMonth" class="date-input"
-                       onchange="onReportMonthChange()">
-                <button class="btn btn-ghost btn-sm" onclick="setReportMonthCurrent()">
-                    ماه جاری
-                </button>
-                <button class="btn btn-ghost btn-sm" onclick="loadReports()">
-                    🔄 رفرش
-                </button>
-            </section>
-
-            <!-- Loading -->
-            <div class="loading-container" id="reportsLoading" style="display: none;">
-                <div class="loading-spinner"></div>
-                <div class="loading-text">در حال بارگذاری...</div>
-            </div>
-
-            <!-- خلاصه‌ی کلی -->
-            <section class="stats-grid" style="margin-bottom: 24px;">
-                <div class="stat-card">
-                    <div class="stat-icon">👥</div>
-                    <div class="stat-info">
-                        <div class="stat-label">کل اعضا</div>
-                        <div class="stat-value" id="rTotalMembers">0</div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon" style="background: rgba(46, 204, 113, 0.15);">✅</div>
-                    <div class="stat-info">
-                        <div class="stat-label">حضور این ماه</div>
-                        <div class="stat-value" id="rMonthAttendances">0</div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon" style="background: rgba(52, 152, 219, 0.15);">📊</div>
-                    <div class="stat-info">
-                        <div class="stat-label">نرخ حضور</div>
-                        <div class="stat-value" id="rAttendanceRate">0%</div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon" style="background: rgba(241, 196, 15, 0.15);">💰</div>
-                    <div class="stat-info">
-                        <div class="stat-label">درآمد ماه</div>
-                        <div class="stat-value" id="rMonthIncome">0</div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- نمودار حضور روزانه -->
-            <section class="report-section">
-                <h3 class="section-title">📊 حضور روزانه</h3>
-                <div class="chart-container">
-                    <div id="attendanceChart" class="bar-chart"></div>
-                </div>
-                <div id="chartEmpty" class="empty-state" style="display: none;">
-                    <div style="color: #95a5a6; font-size: 14px;">
-                        داده‌ای برای نمایش نیست
-                    </div>
-                </div>
-            </section>
-
-            <!-- اعضای برتر -->
-            <section class="report-section" style="margin-top: 30px;">
-                <h3 class="section-title">🏆 اعضای برتر (بیشترین حضور)</h3>
-                <div id="topMembersList" class="top-members-list"></div>
-                <div id="topMembersEmpty" class="empty-state" style="display: none;">
-                    <div style="color: #95a5a6; font-size: 14px;">
-                        داده‌ای برای نمایش نیست
-                    </div>
-                </div>
-            </section>
-
-            <!-- اعضای جدید -->
-            <section class="report-section" style="margin-top: 30px;">
-                <h3 class="section-title">
-                    🆕 اعضای جدید این ماه
-                    <span class="badge-count" id="newMembersBadge">0</span>
-                </h3>
-                <div id="newMembersList" class="new-members-list"></div>
-                <div id="newMembersEmpty" class="empty-state" style="display: none;">
-                    <div style="color: #95a5a6; font-size: 14px;">
-                        عضو جدیدی در این ماه اضافه نشده
-                    </div>
-                </div>
-            </section>
-
-        </div>
-
-        <!-- ═══ Settings Content ═══ -->
-        <div id="settingsContent" style="display: none;">
-
-            <section class="page-header">
-                <h1 class="page-title">⚙️ تنظیمات</h1>
-                <p class="page-subtitle">اطلاعات حساب و تنظیمات برنامه</p>
-            </section>
-
-            <!-- اطلاعات حساب -->
-            <section class="settings-section">
-                <h3 class="section-title">👤 اطلاعات حساب</h3>
-                <div class="info-grid">
-                    <div class="info-card">
-                        <div class="info-icon">👤</div>
-                        <div class="info-content">
-                            <div class="info-label">نام کاربر</div>
-                            <div class="info-value" id="setFullName">—</div>
-                        </div>
-                    </div>
-                    <div class="info-card">
-                        <div class="info-icon">📱</div>
-                        <div class="info-content">
-                            <div class="info-label">شماره موبایل</div>
-                            <div class="info-value" id="setPhone" dir="ltr">—</div>
-                        </div>
-                    </div>
-                    <div class="info-card">
-                        <div class="info-icon">🏢</div>
-                        <div class="info-content">
-                            <div class="info-label">نام باشگاه</div>
-                            <div class="info-value" id="setClubName">—</div>
-                        </div>
-                    </div>
-                    <div class="info-card">
-                        <div class="info-icon">🆔</div>
-                        <div class="info-content">
-                            <div class="info-label">کد مشتری</div>
-                            <div class="info-value" id="setCustomerCode">—</div>
-                        </div>
-                    </div>
-                    <div class="info-card">
-                        <div class="info-icon">🔑</div>
-                        <div class="info-content">
-                            <div class="info-label">نام کاربری</div>
-                            <div class="info-value" id="setUsername" dir="ltr">—</div>
-                        </div>
-                    </div>
-                    <div class="info-card">
-                        <div class="info-icon">📧</div>
-                        <div class="info-content">
-                            <div class="info-label">ایمیل</div>
-                            <div class="info-value" id="setEmail" dir="ltr">—</div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- وضعیت اشتراک -->
-            <section class="settings-section">
-                <h3 class="section-title">🎫 وضعیت اشتراک</h3>
-                <div id="subscriptionBox" class="subscription-box">
-                    <div class="sub-loading">در حال بارگذاری...</div>
-                </div>
-            </section>
-
-            <!-- لینک‌های مفید -->
-            <section class="settings-section">
-                <h3 class="section-title">📥 دسترسی سریع</h3>
-                <div class="quick-links">
-                    <button class="quick-link-btn" onclick="downloadDesktop()">
-                        <span class="ql-icon">⬇️</span>
-                        <span class="ql-text">
-                            <span class="ql-title">دانلود نسخه دسکتاپ</span>
-                            <span class="ql-sub">نرم‌افزار اصلی</span>
-                        </span>
-                    </button>
-
-                    <button class="quick-link-btn" onclick="openPortal()">
-                        <span class="ql-icon">🌐</span>
-                        <span class="ql-text">
-                            <span class="ql-title">پورتال اعضا</span>
-                            <span class="ql-sub">برای ورزشکاران</span>
-                        </span>
-                    </button>
-
-                    <button class="quick-link-btn" onclick="contactSupport()">
-                        <span class="ql-icon">💬</span>
-                        <span class="ql-text">
-                            <span class="ql-title">پشتیبانی</span>
-                            <span class="ql-sub">تماس با ما</span>
-                        </span>
-                    </button>
-
-                    <button class="quick-link-btn" onclick="copyPortalLink()">
-                        <span class="ql-icon">📋</span>
-                        <span class="ql-text">
-                            <span class="ql-title">کپی لینک پورتال</span>
-                            <span class="ql-sub">برای اشتراک‌گذاری</span>
-                        </span>
-                    </button>
-                </div>
-            </section>
-
-            <!-- ظاهر -->
-            <section class="settings-section">
-                <h3 class="section-title">🎨 ظاهر</h3>
-                <div class="theme-selector">
-                    <button class="theme-btn" id="themeDarkBtn" onclick="setTheme('dark')">
-                        <span class="theme-icon">🌙</span>
-                        <span>حالت تاریک</span>
-                    </button>
-                    <button class="theme-btn" id="themeLightBtn" onclick="setTheme('light')">
-                        <span class="theme-icon">☀️</span>
-                        <span>حالت روشن</span>
-                    </button>
-                </div>
-            </section>
-
-            <!-- خروج -->
-            <section class="settings-section">
-                <button class="btn btn-danger btn-block" onclick="logout()">
-                    🚪 خروج از حساب
-                </button>
-            </section>
-
-            <!-- نسخه -->
-            <div class="version-info">
-                <span>پالس مدیریت — نسخه <span id="setVersion">1.0.0</span></span>
-            </div>
-
-        </div>
-
-        <!-- ═══ Settings Content ═══ -->
-        <div id="settingsContent" style="display: none;">
-
-            <section class="page-header">
-                <h1 class="page-title">⚙️ تنظیمات</h1>
-                <p class="page-subtitle">اطلاعات حساب و تنظیمات برنامه</p>
-            </section>
-
-            <!-- اطلاعات حساب -->
-            <section class="settings-section">
-                <h3 class="section-title">👤 اطلاعات حساب</h3>
-                <div class="info-grid">
-                    <div class="info-card">
-                        <div class="info-icon">👤</div>
-                        <div class="info-content">
-                            <div class="info-label">نام کاربر</div>
-                            <div class="info-value" id="setFullName">—</div>
-                        </div>
-                    </div>
-                    <div class="info-card">
-                        <div class="info-icon">📱</div>
-                        <div class="info-content">
-                            <div class="info-label">شماره موبایل</div>
-                            <div class="info-value" id="setPhone" dir="ltr">—</div>
-                        </div>
-                    </div>
-                    <div class="info-card">
-                        <div class="info-icon">🏢</div>
-                        <div class="info-content">
-                            <div class="info-label">نام باشگاه</div>
-                            <div class="info-value" id="setClubName">—</div>
-                        </div>
-                    </div>
-                    <div class="info-card">
-                        <div class="info-icon">🆔</div>
-                        <div class="info-content">
-                            <div class="info-label">کد مشتری</div>
-                            <div class="info-value" id="setCustomerCode">—</div>
-                        </div>
-                    </div>
-                    <div class="info-card">
-                        <div class="info-icon">🔑</div>
-                        <div class="info-content">
-                            <div class="info-label">نام کاربری</div>
-                            <div class="info-value" id="setUsername" dir="ltr">—</div>
-                        </div>
-                    </div>
-                    <div class="info-card">
-                        <div class="info-icon">📧</div>
-                        <div class="info-content">
-                            <div class="info-label">ایمیل</div>
-                            <div class="info-value" id="setEmail" dir="ltr">—</div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- وضعیت اشتراک -->
-            <section class="settings-section">
-                <h3 class="section-title">🎫 وضعیت اشتراک</h3>
-                <div id="subscriptionBox" class="subscription-box">
-                    <div class="sub-loading">در حال بارگذاری...</div>
-                </div>
-            </section>
-
-            <!-- لینک‌های مفید -->
-            <section class="settings-section">
-                <h3 class="section-title">📥 دسترسی سریع</h3>
-                <div class="quick-links">
-                    <button class="quick-link-btn" onclick="downloadDesktop()">
-                        <span class="ql-icon">⬇️</span>
-                        <span class="ql-text">
-                            <span class="ql-title">دانلود نسخه دسکتاپ</span>
-                            <span class="ql-sub">نرم‌افزار اصلی</span>
-                        </span>
-                    </button>
-
-                    <button class="quick-link-btn" onclick="openPortal()">
-                        <span class="ql-icon">🌐</span>
-                        <span class="ql-text">
-                            <span class="ql-title">پورتال اعضا</span>
-                            <span class="ql-sub">برای ورزشکاران</span>
-                        </span>
-                    </button>
-
-                    <button class="quick-link-btn" onclick="contactSupport()">
-                        <span class="ql-icon">💬</span>
-                        <span class="ql-text">
-                            <span class="ql-title">پشتیبانی</span>
-                            <span class="ql-sub">تماس با ما</span>
-                        </span>
-                    </button>
-
-                    <button class="quick-link-btn" onclick="copyPortalLink()">
-                        <span class="ql-icon">📋</span>
-                        <span class="ql-text">
-                            <span class="ql-title">کپی لینک پورتال</span>
-                            <span class="ql-sub">برای اشتراک‌گذاری</span>
-                        </span>
-                    </button>
-                </div>
-            </section>
-
-            <!-- ظاهر -->
-            <section class="settings-section">
-                <h3 class="section-title">🎨 ظاهر</h3>
-                <div class="theme-selector">
-                    <button class="theme-btn" id="themeDarkBtn" onclick="setTheme('dark')">
-                        <span class="theme-icon">🌙</span>
-                        <span>حالت تاریک</span>
-                    </button>
-                    <button class="theme-btn" id="themeLightBtn" onclick="setTheme('light')">
-                        <span class="theme-icon">☀️</span>
-                        <span>حالت روشن</span>
-                    </button>
-                </div>
-            </section>
-
-            <!-- خروج -->
-            <section class="settings-section">
-                <button class="btn btn-danger btn-block" onclick="logout()">
-                    🚪 خروج از حساب
-                </button>
-            </section>
-
-            <!-- نسخه -->
-            <div class="version-info">
-                <span>پالس مدیریت — نسخه <span id="setVersion">1.0.0</span></span>
-            </div>
-
-        </div>
-
-    </main>
-</div>
-
-<div class="toast" id="toast"></div>
-
-
-<script src="js/license-utils.js?v=20261013_213555"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2?v=20261011223512"></script>
-<script src="js/config.js?v=20261013_213555"></script>
-<script src="js/dashboard.js?v=20261013_213555"></script>
-<script src="js/members.js?v=20261013_213555"></script>
-<script src="js/attendance.js?v=20261013_213555"></script>
-<script src="js/finance.js?v=20261013_213555"></script>
-<script src="js/reports.js?v=20261013_213555"></script>
-<script src="js/settings.js?v=20261013_213555"></script>
-
-
-<!-- Service Worker -->
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js', { scope: './' })
-        .then(reg => {
-          console.log('✅ SW registered:', reg.scope);
-        })
-        .catch(err => {
-          console.warn('⚠️ SW registration failed:', err);
-        });
-    });
-  }
-</script>
-
+    <script>
+        function toggleTheme() {
+            // Logic for theme toggle if needed
+        }
+    </script>
+    <script src="js/license-utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/config.js"></script>
+    <script src="js/dashboard.js?v=1793791194531"></script>
+    <script src="js/members.js?v=1793789983759"></script>
+    <script src="js/attendance.js"></script>
+    <script src="js/finance.js"></script>
+    <script src="js/reports.js"></script>
+    <script src="js/settings.js?v=1793791114288"></script>
+    <script>
+        lucide.createIcons();
+    </script>
 </body>
 </html>

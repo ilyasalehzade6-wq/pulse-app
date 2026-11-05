@@ -166,6 +166,7 @@ function initLoginPage() {
     form.addEventListener('submit', handleLogin);
 }
 
+
 async function handleLogin(event) {
     event.preventDefault();
 
@@ -184,35 +185,22 @@ async function handleLogin(event) {
         return showError('رمز عبور باید حداقل ۶ کاراکتر باشد');
     }
 
-    // Loading
+    // حالت لودینگ
     btn.disabled = true;
-    btnText.textContent = 'در حال ورود...';
-    spinner.style.display = 'inline-block';
+    if (btnText) btnText.textContent = 'در حال ورود...';
+    if (spinner) spinner.style.display = 'inline-block';
 
     try {
         // ─── ۱. تبدیل identifier به email ───
         let email;
-
         const isPhone = /^09[0-9]{9}$/.test(toEnglishDigits(identifier));
 
         if (isPhone) {
-            // شماره موبایل → مستقیم
             email = phoneToEmail(toEnglishDigits(identifier));
         } else {
-            // نام کاربری → RPC برای پیدا کردن email
-            const { data, error } = await supabaseClient.rpc('get_gym_login_info', {
-                p_identifier: identifier
-            });
-
-            if (error) {
-                console.error('RPC error:', error);
-                return showError('خطا در اتصال. دوباره تلاش کنید.');
-            }
-
-            if (!data || !data.success) {
-                return showError(data?.error || 'کاربری با این مشخصات پیدا نشد');
-            }
-
+            const { data, error } = await supabaseClient.rpc('get_gym_login_info', { p_identifier: identifier });
+            if (error) throw new Error('خطا در اتصال. دوباره تلاش کنید.');
+            if (!data || !data.success) throw new Error('کاربری با این مشخصات پیدا نشد');
             email = data.email;
         }
 
@@ -224,13 +212,14 @@ async function handleLogin(event) {
 
         if (authError) {
             if (authError.message.includes('Invalid login')) {
-                return showError('نام کاربری یا رمز عبور اشتباه است');
+                throw new Error('نام کاربری یا رمز عبور اشتباه است');
             }
-            return showError('خطا در ورود: ' + authError.message);
+            throw new Error('خطا در ورود: ' + authError.message);
         }
 
+        // ─── ۳. موفقیت ───
         showToast('خوش آمدید!', 'success');
-        btnText.textContent = '✅ در حال انتقال...';
+        if (btnText) btnText.textContent = 'در حال انتقال...';
 
         setTimeout(() => {
             window.location.href = 'index.html';
@@ -238,12 +227,15 @@ async function handleLogin(event) {
 
     } catch (error) {
         console.error('Login error:', error);
-        showError('خطای غیرمنتظره: ' + error.message);
+        showError(error.message);
+    } finally {
+        // 🔥 این بخش تضمین می‌کند که دکمه در هر شرایطی (حتی خطا) به حالت عادی برگردد
         btn.disabled = false;
-        btnText.textContent = '🔑 ورود';
-        spinner.style.display = 'none';
+        if (btnText) btnText.textContent = 'ورود به حساب';
+        if (spinner) spinner.style.display = 'none';
     }
 }
+
 
 // ============================================================
 // Helper: نمایش خطا
